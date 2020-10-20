@@ -1,4 +1,3 @@
-import networkx as net
 import numpy as np
 import numba
 from numba import njit
