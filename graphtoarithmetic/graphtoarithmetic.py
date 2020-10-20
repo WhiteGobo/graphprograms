@@ -1,6 +1,6 @@
 import numpy as np
 import numba
-from numba import njit
+from numba import jit
 MYDTYPE = np.float64
 
 class EdgeTypeError( Exception ):
@@ -41,8 +41,8 @@ class graphcontainer():
         exec( cmd_code, {"return_array":return_array, "np":np} )
         cycle2_function = return_array[0]
 
-        self.cycle1_function = numba.njit( cycle1_function )
-        self.cycle2_function = numba.njit( cycle2_function )
+        self.cycle1_function = numba.jit( cycle1_function )
+        self.cycle2_function = numba.jit( cycle2_function )
 
     def __init_savespace( self, graph ):
         self.savespace_list = []
