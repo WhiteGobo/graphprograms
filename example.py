@@ -60,7 +60,7 @@ if __name__=="__main__":
             }
     graph = create_grid_graph( grid )
 
-    mythingis = graphcontainer( graph, creation_library )
+    mythingis = mygraph.graphcontainer( graph, creation_library )
 
     print( mythingis.savespace.reshape((3,6)) )
 
