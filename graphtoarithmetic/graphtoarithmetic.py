@@ -14,6 +14,8 @@ class graphcontainer():
         :variable creation_library: library maps identifer of graph to a
                         class, use identifier "default" for default class
         """
+        self.cycle1_function, self.cycle2_function = None, None
+        self.nodedict, self.savespace_list, self.savespace = None, None, None
         self.creation_library = creation_library
         self.default_verticeclass = \
                     self.creation_library.setdefault( "default", None )
@@ -49,9 +51,9 @@ class graphcontainer():
         self.nodedict = {}
         for tmpnode in graph.nodes():
             vertice_generator = self.creation_library.setdefault( tmpnode, \
-                                self.default_verticeclass)
+                                self.default_verticeclass )
             try:
-                tmpvertice = vertice_generator( self.savename )
+                tmpvertice = vertice_generator( self.savename, self )
             except TypeError as err:
                 errmsg = "missing generator for vertice %s," %(repr(tmpnode))\
                         + "Try 'default' keyword in creation_library"
@@ -76,8 +78,9 @@ class graphcontainer():
 class graphvertice():
     init_values = tuple()
 
-    def __init__( self, savename ):
+    def __init__( self, savename, graphcontainer ):
         self.value_index = None
+        self.graphcontainer = graphcontainer
         self.edge_library = {}
         self.arrayname = savename
 
@@ -88,4 +91,11 @@ class graphvertice():
             errmsg = "verticetype %s cant edgeto verticetype %s" \
                     % ( type(self), type(other) )
             raise EdgeTypeError(errmsg) from err
+
+    def getvalue( self, index ):
+        return self.graphcontainer[ value_index[index] ]
+    def setvalue( self, index, value ):
+        self.graphcontainer[ value_index[index] ] = value
+
+
 
