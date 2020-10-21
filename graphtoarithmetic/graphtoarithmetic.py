@@ -95,9 +95,9 @@ class graphvertice():
             raise EdgeTypeError(errmsg) from err
 
     def getvalue( self, index ):
-        return self.graphcontainer[ self.value_index[index] ]
+        return self.graphcontainer.savespace[ self.value_index[index] ]
     def setvalue( self, index, value ):
-        self.graphcontainer[ self.value_index[index] ] = value
+        self.graphcontainer.savespace[ self.value_index[index] ] = value
 
 
 
