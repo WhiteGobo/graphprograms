@@ -22,7 +22,7 @@ class firstvertice( mygraph.graphvertice ):
             cmd_first = "%s = %s -(0.2*%s) + .2" \
                     % ( selfvalue, selfvalue, othervalue )
             cmd_second = "pass"
-        return cmd_first, cmd_second
+        return [cmd_first], [cmd_second]
 
 def create_grid_graph( graph_dict ):
     """

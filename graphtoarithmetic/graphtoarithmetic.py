@@ -29,9 +29,11 @@ class graphcontainer():
         cmd1 = "def cycle1( %s ):\n" % ( self.savename )
         cmd2 = "def cycle2( %s ):\n" % ( self.savename )
         for edge in graph.edges():
-            tmpcmd1, tmpcmd2 = nodes[ edge[0] ].edgeto( nodes[ edge[1] ] )
-            cmd1 = cmd1 +"\t" + tmpcmd1 + "\n"
-            cmd2 = cmd2 +"\t" + tmpcmd2 + "\n"
+            list_cmd1, list_cmd2 = nodes[ edge[0] ].edgeto( nodes[ edge[1] ] )
+            for tmpcmd1 in list_cmd1:
+                cmd1 = cmd1 +"\t" + tmpcmd1 + "\n"
+            for tmpcmd2 in list_cmd2:
+                cmd2 = cmd2 +"\t" + tmpcmd2 + "\n"
         cmd1 = cmd1 + "\n\treturn %s\n" % (self.savename)
         cmd1 = cmd1 + "\nreturn_array[0] = cycle1"
         cmd2 = cmd2 + "\n\treturn %s\n" % (self.savename)
