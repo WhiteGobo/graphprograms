@@ -5,8 +5,8 @@ import networkx as net
 class firstvertice( mygraph.graphvertice ):
     init_values = tuple([ 0.0, 0.0 ])
 
-    def __init__( self, savename ):
-        super().__init__(savename)
+    def __init__( self, savename, container ):
+        super().__init__( savename, container )
         self.edge_library.update({ type(self):self.edgeto_self })
 
     def edgeto_self( self, other ):
