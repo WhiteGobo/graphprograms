@@ -1,6 +1,7 @@
 from graphtoarithmetic import graphtoarithmetic as mygraph
 import networkx as net
 
+graphcontainer_cycles = 2
 
 class firstvertice( mygraph.graphvertice ):
     init_values = tuple([ 0.0, 0.0 ])
@@ -22,6 +23,8 @@ class firstvertice( mygraph.graphvertice ):
             cmd_first = "%s = %s -(0.2*%s) + .2" \
                     % ( selfvalue, selfvalue, othervalue )
             cmd_second = "pass"
+        # number of returnvalues has to match the number of cycles of the
+        # graphcontainer( default=2 ); see graphcontainer_cycles
         return [cmd_first], [cmd_second]
 
 def create_grid_graph( graph_dict ):
@@ -60,7 +63,8 @@ if __name__=="__main__":
             }
     graph = create_grid_graph( grid )
 
-    mythingis = mygraph.graphcontainer( graph, creation_library )
+    mythingis = mygraph.graphcontainer( graph, creation_library,\
+                                    cycles = graphcontainer_cycles )
 
     print( mythingis.savespace.reshape((3,6)) )
 
