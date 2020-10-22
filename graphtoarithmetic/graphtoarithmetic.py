@@ -29,6 +29,9 @@ class graphcontainer():
 
         return_array = [None]
         cmds = list( range(self.cycles) )
+        myglobals = {"return_array":return_array, "np":np}
+        for edge in graph.edges():
+            myglobals.update( nodes[ edge[0] ].extraglobals )
         #create functions
         for i in range( self.cycles ):
             cmds[i] = "def cycle%d( %s ):\n" % ( i, self.savename )
@@ -43,7 +46,7 @@ class graphcontainer():
                     + "\nreturn_array[0] = cycle%d" %( i )
             # !ersetze graphcontainer
             cmd_code = compile( cmds[i], "graphcontainer", "exec" )
-            exec( cmd_code, {"return_array":return_array, "np":np} )
+            exec( cmd_code, myglobals )
             self.cycle_functions[i] = numba.jit( return_array[0] )
 
     def __init_savespace( self, graph ):
@@ -78,11 +81,12 @@ class graphcontainer():
 class graphvertice():
     init_values = tuple()
 
-    def __init__( self, savename, graphcontainer ):
+    def __init__( self, savename, graphcontainer, extraglobals = {} ):
         self.value_index = None
         self.graphcontainer = graphcontainer
         self.edge_library = {}
         self.arrayname = savename
+        self.extraglobals = extraglobals
 
     def edgeto( self, other ):
         try:
