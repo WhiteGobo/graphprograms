@@ -8,13 +8,15 @@ class EdgeTypeError( Exception ):
 
 class graphcontainer():
     savename = "array" #must correspond to cycle_function,see __init_cycle
-    def __init__( self, graph, creation_library ):
+    def __init__( self, graph, creation_library, cycles = 2 ):
         """
         :type creation_library: dictionary
         :variable creation_library: library maps identifer of graph to a
                         class, use identifier "default" for default class
         """
-        self.cycle1_function, self.cycle2_function = None, None
+        self.cycles = cycles
+        self.cycle_functions = list( range( self.cycles ) )
+        print( self.cycle_functions )
         self.nodedict, self.savespace_list, self.savespace = None, None, None
         self.creation_library = creation_library
         self.default_verticeclass = \
@@ -26,27 +28,23 @@ class graphcontainer():
         nodes = self.nodedict
 
         return_array = [None]
-        cmd1 = "def cycle1( %s ):\n" % ( self.savename )
-        cmd2 = "def cycle2( %s ):\n" % ( self.savename )
+        cmds = list( range(self.cycles) )
+        #create functions
+        for i in range( self.cycles ):
+            cmds[i] = "def cycle%d( %s ):\n" % ( i, self.savename )
         for edge in graph.edges():
-            list_cmd1, list_cmd2 = nodes[ edge[0] ].edgeto( nodes[ edge[1] ] )
-            for tmpcmd1 in list_cmd1:
-                cmd1 = cmd1 +"\t" + tmpcmd1 + "\n"
-            for tmpcmd2 in list_cmd2:
-                cmd2 = cmd2 +"\t" + tmpcmd2 + "\n"
-        cmd1 = cmd1 + "\n\treturn %s\n" % (self.savename)
-        cmd1 = cmd1 + "\nreturn_array[0] = cycle1"
-        cmd2 = cmd2 + "\n\treturn %s\n" % (self.savename)
-        cmd2 = cmd2 + "\nreturn_array[0] = cycle2"
-        cmd_code = compile( cmd1, "graphcontainer", "exec" )
-        exec( cmd_code, {"return_array":return_array, "np":np} )
-        cycle1_function = return_array[0]
-        cmd_code = compile( cmd2, "graphcontainer", "exec" )
-        exec( cmd_code, {"return_array":return_array, "np":np} )
-        cycle2_function = return_array[0]
-
-        self.cycle1_function = numba.jit( cycle1_function )
-        self.cycle2_function = numba.jit( cycle2_function )
+            superlist_cmds = nodes[ edge[0] ].edgeto( nodes[ edge[1] ] )
+            for i in range( self.cycles ):
+                for tmpcmd in superlist_cmds[i]:
+                    cmds[i] = cmds[i] +"\t" + tmpcmd + "\n"
+        for i in range( self.cycles ):
+            cmds[i] = cmds[i] \
+                    + "\n\treturn %s\n" % (self.savename) \
+                    + "\nreturn_array[0] = cycle%d" %( i )
+            # !ersetze graphcontainer
+            cmd_code = compile( cmds[i], "graphcontainer", "exec" )
+            exec( cmd_code, {"return_array":return_array, "np":np} )
+            self.cycle_functions[i] = numba.jit( return_array[0] )
 
     def __init_savespace( self, graph ):
         self.savespace_list = []
@@ -74,8 +72,8 @@ class graphcontainer():
         self.savespace = np.array( self.savespace_list, dtype=MYDTYPE )
 
     def cycle( self ):
-        self.savespace = self.cycle1_function( self.savespace )
-        self.savespace = self.cycle2_function( self.savespace )
+        for i in range( self.cycles ):
+            self.savespace = self.cycle_functions[i]( self.savespace )
 
 class graphvertice():
     init_values = tuple()
