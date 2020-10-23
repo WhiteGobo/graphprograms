@@ -16,7 +16,6 @@ class graphcontainer():
         """
         self.cycles = cycles
         self.cycle_functions = list( range( self.cycles ) )
-        print( self.cycle_functions )
         self.nodedict, self.savespace_list, self.savespace = None, None, None
         self.creation_library = creation_library
         self.default_verticeclass = \
@@ -47,7 +46,8 @@ class graphcontainer():
             # !ersetze graphcontainer
             cmd_code = compile( cmds[i], "graphcontainer", "exec" )
             exec( cmd_code, myglobals )
-            self.cycle_functions[i] = numba.jit( return_array[0] )
+            #self.cycle_functions[i] = numba.jit( return_array[0] )
+            self.cycle_functions[i] = return_array[0]
 
     def __init_savespace( self, graph ):
         self.savespace_list = []
@@ -75,8 +75,12 @@ class graphcontainer():
         self.savespace = np.array( self.savespace_list, dtype=MYDTYPE )
 
     def cycle( self ):
+        #from datetime import datetime
         for i in range( self.cycles ):
+            #starttime = datetime.now()
             self.savespace = self.cycle_functions[i]( self.savespace )
+            #endtime = datetime.now()
+            #print( "needed time: %s" %(repr(endtime - starttime)) )
 
 class graphvertice():
     init_values = tuple()
