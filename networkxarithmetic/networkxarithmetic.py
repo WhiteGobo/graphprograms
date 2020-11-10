@@ -4,6 +4,8 @@ MYDTYPE  = _np.float64
 
 class NoStartvalueGiven_Error( Exception ):
     pass
+class CycleToTree_Error( Exception ):
+    pass
 
 class graphcontainer():
     def __init__( self ):
@@ -18,6 +20,7 @@ class graphcontainer():
         self.edge_dict = {}
         self.calc_graph = None
         self.time_graph = None
+        self.extra_globals = None
 
     def cycle( self ):
         self.values = self.cyclefunction( self.values )
@@ -52,6 +55,7 @@ class graphcontainer():
         :raises NoStartvalueGiven_Error: raise exception if a default value is 
                             set to None and no startvalue is given by the graph
         """
+        self.extra_globals = {} #create new
         dataname_list = []
         startvalue_list = []
         codegraph = netx.DiGraph()
@@ -60,8 +64,9 @@ class graphcontainer():
         for nodeinfo in nodes:
             tmpnode = nodeinfo[0]
             tmpdata = nodeinfo[1]
-            nodetypedata_dict, codesnippet \
+            nodetypedata_dict, codesnippet, function_globals \
                     = self.calc_dict[ tmpdata["calctype"] ]()
+            self.extra_globals.update( function_globals )
             for nodetype_datakey in nodetypedata_dict:
                 dataname = str(tmpnode) + nodetype_datakey
                 # use as starting value value given in graph
@@ -95,7 +100,7 @@ class graphcontainer():
                     before_nodeout, before_nodein \
                     = self.edge_dict[ (outtype, intype,tmpdata["edgetype"]) ]()
             _replace_edgecodesnippet_placeholders( codenode, \
-                                    dataname_list, tmpnodein, tmpnodeout )
+                                    dataname_list, str(tmpnodein), str(tmpnodeout) )
             tmpmapping = { tmpdata["edgetype"]:
                     str(tmpnodeout)+str(tmpnodein) \
                     + str(edgekey) + tmpdata["edgetype"] }
@@ -122,11 +127,15 @@ class graphcontainer():
     def _generate_code( self ):
         nodelayers=[]
         tmpsubgraph = netx.DiGraph( self.codegraph )
+        tmplastlength = len(tmpsubgraph)
         while len(tmpsubgraph) > 0:
             withoutneighbor = [x for x in tmpsubgraph.nodes() \
                                 if len( list(tmpsubgraph.predecessors(x))) ==0]
             nodelayers.append( withoutneighbor )
             tmpsubgraph.remove_nodes_from( withoutneighbor )
+            if tmplastlength == len(tmpsubgraph):
+                raise CycleToTree_Error("couldnt create valid functionorder")
+            tmplastlength = len(tmpsubgraph)
 
         mycode = "def cycle( value ):\n"
         for layer in nodelayers:
@@ -138,6 +147,7 @@ class graphcontainer():
 
         return_array = [None]
         myglobals = {"return_array":return_array, "np":_np}
+        myglobals.update( self.extra_globals )
         cmd_code = compile( mycode, "networkxarithmetic", "exec" )
         exec( cmd_code, myglobals )
         self.cyclefunction = return_array[0]

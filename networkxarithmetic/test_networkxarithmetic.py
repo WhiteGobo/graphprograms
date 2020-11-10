@@ -52,7 +52,13 @@ def _ladder_code():
     code_graph = netx.DiGraph()
     code_graph.add_node( "ladderup", code=["value[%d] = value[%d] + 1"],
                                     values=[("out", "out")])
-    return nodedata, code_graph
+    # extra function can be given by a dictionary as third returnvalue
+    # keys must be strings correspdoning to codesnippets
+    #def foo():
+    #    pass
+    #functiondictionary = { "fo":foo } # fo can be used in codesnippets
+    functiondictionary = {}
+    return nodedata, code_graph, functiondictionary
 
 def adder_code():
     data_dict={ "out":0 }
@@ -60,12 +66,25 @@ def adder_code():
     code_graph.add_node( "reset", code=["value[%d] = 0"],
                                 values=[("out",)])
     code_graph.add_node( "sum", code=[], values=[])
-    return data_dict, code_graph
+    code_graph.add_edge( "reset", "sum" ) # reset will be executed before sum
+    functiondictionary = {}
+    return data_dict, code_graph, functiondictionary
 
 def nodefault_code():
     data_dict={ "myvalue":None }
     code_graph = netx.DiGraph()
-    return data_dict, code_graph
+    functiondictionary = {}
+    return data_dict, code_graph, functiondictionary
+
+def extraglobal_code():
+    data_dict={ "myvalue":0 }
+    def mygiveone():
+        return 1
+    functiondictionary = { "giveone":mygiveone }
+    code_graph = netx.DiGraph()
+    code_graph.add_node( "reset", code=["value[%d] = giveone()"],
+                                values=[("myvalue",)])
+    return data_dict, code_graph, functiondictionary
 
 def laddertoadder_push():
     after_execution_nodeout = ["ladderup"]
@@ -80,6 +99,20 @@ def laddertoadder_push():
 
     return code_graph, after_execution_nodeout, after_execution_nodein, \
                     before_execution_nodeout, before_execution_nodein
+
+def addertoadder_push():
+    #after_execution_nodeout = ["sum"]
+    #after_execution_nodein = ["reset"]
+    #before_execution_nodeout = []
+    #before_execution_nodein = ["sum"]
+    asd = [["sum"],["reset"],[],["sum"]]
+    code_graph = netx.DiGraph()
+    code_graph.add_node( "push", code=["value[%d] = value[%d] + value[%d]"],
+                            values=[(("in","out"),("in","out"),("out","out"))])
+
+    return code_graph, *asd
+    #return code_graph, after_execution_nodeout, after_execution_nodein, \
+    #                before_execution_nodeout, before_execution_nodein
     
 
 
@@ -98,10 +131,20 @@ class TestNetworkxarithmeticMethods( unittest.TestCase ):
         self.testgraph_singlewithdefault=netx.MultiDiGraph()
         self.testgraph_singlewithdefault.add_node( 0, calctype="nodefault", \
                                                 myvalue=0 )
+        self.testgraph_cyclegraph=netx.MultiDiGraph()
+        self.testgraph_cyclegraph.add_node( 0, calctype="adder" )
+        self.testgraph_cyclegraph.add_node( 1, calctype="adder" )
+        self.testgraph_cyclegraph.add_edge( 0, 1, edgetype="push" )
+        self.testgraph_cyclegraph.add_edge( 1, 0, edgetype="push" )
+
+        self.testgraph_extraglobal=netx.MultiDiGraph()
+        self.testgraph_extraglobal.add_node( 0, calctype="extraglobal" )
+
 
         self.code_library = { "ladder":_ladder_code, "adder":adder_code, \
-                                "nodefault":nodefault_code }
-        self.edge_library = { ("ladder", "adder", "push"):laddertoadder_push }
+                "nodefault":nodefault_code, "extraglobal":extraglobal_code }
+        self.edge_library = { ("ladder", "adder", "push"):laddertoadder_push, \
+                            ("adder", "adder", "push"):addertoadder_push }
 
     def test_singlenode( self ):
         graphcode1 = arit.graphcontainer()
@@ -134,7 +177,6 @@ class TestNetworkxarithmeticMethods( unittest.TestCase ):
         graphcode3 = arit.graphcontainer()
         graphcode3.update_calclibrary( self.code_library )
         graphcode3.update_edgelibrary( self.edge_library )
-        hasthrownerror=False
         def testfunction():
             graphcode3.createcode_with_graph( self.testgraph_singlenodefault)
         self.assertRaises( arit.NoStartvalueGiven_Error, testfunction )
@@ -143,6 +185,23 @@ class TestNetworkxarithmeticMethods( unittest.TestCase ):
         graphcode4.update_calclibrary( self.code_library )
         graphcode4.update_edgelibrary( self.edge_library )
         graphcode4.createcode_with_graph( self.testgraph_singlewithdefault )
+
+    def test_cyclegrapherror( self ):
+        graphcode5 = arit.graphcontainer()
+        graphcode5.update_calclibrary( self.code_library )
+        graphcode5.update_edgelibrary( self.edge_library )
+        def testfunction():
+            graphcode5.createcode_with_graph( self.testgraph_cyclegraph )
+        self.assertRaises( arit.CycleToTree_Error, testfunction )
+
+    def test_extrafunctions( self ):
+        graphcode6 = arit.graphcontainer()
+        graphcode6.update_calclibrary( self.code_library )
+        graphcode6.update_edgelibrary( self.edge_library )
+        graphcode6.createcode_with_graph( self.testgraph_extraglobal )
+        self.assertEqual( graphcode6.values[0], 0 )
+        graphcode6.cycle()
+        self.assertEqual( graphcode6.values[0], 1 )
 
 
 if __name__=="__main__":
