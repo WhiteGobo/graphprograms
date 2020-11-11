@@ -79,8 +79,9 @@ class graphcontainer():
                 startvalue = nodes[tmpnode].setdefault( nodetype_datakey, \
                                             nodetypedata_dict[nodetype_datakey])
                 if startvalue == None:
-                    raise NoStartvalueGiven_Error(
-                            "nodetype %s needs a "%(tmpdata["calctype"])\
+                    raise NoStartvalueGiven_Error(\
+                            "node %s with " %( tmpnode ) \
+                            +"nodetype %s needs a "%(tmpdata["calctype"])\
                             +"starting value for %s" %(str(nodetype_datakey))  )
                 dataname_list.append( dataname )
                 startvalue_list.append( startvalue )
