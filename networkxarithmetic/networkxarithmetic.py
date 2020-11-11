@@ -64,8 +64,13 @@ class graphcontainer():
         for nodeinfo in nodes:
             tmpnode = nodeinfo[0]
             tmpdata = nodeinfo[1]
-            nodetypedata_dict, codesnippet, function_globals \
-                    = self.calc_dict[ tmpdata["calctype"] ]()
+            try:
+                nodetypedata_dict, codesnippet, function_globals \
+                        = self.calc_dict[ tmpdata["calctype"] ]()
+            except KeyError as err:
+                err.args = tuple([*err.args, "calclibrary doesnt include "\
+                                            +"this key"])
+                raise  err
             self.extra_globals.update( function_globals )
             for nodetype_datakey in nodetypedata_dict:
                 dataname = str(tmpnode) + nodetype_datakey
