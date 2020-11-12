@@ -168,6 +168,7 @@ class graphcontainer():
                     err.args = ( *err.args, "most likely an edge was made "\
                                     + "between not compatible nodes, problem "\
                                     "timing node is: %s" %( str(node) ))
+                    raise err
         mycode = mycode + "\treturn value\n"
         mycode = mycode + "return_array[0] = cycle\n"
 
