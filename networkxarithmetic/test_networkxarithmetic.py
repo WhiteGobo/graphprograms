@@ -42,7 +42,7 @@ def _ladder_code():
     # default values will be written in ladder code
     # when default value is None there will be an error if no value is given
     # in the graph
-    nodedata = { "out":0 }
+    nodedata = { "lout":0 }
 
     # the code snippets will be stored in a DiGraph
     # edges will determine the order in which the codesnippets will be executed
@@ -51,7 +51,7 @@ def _ladder_code():
     # temporary data can be used
     code_graph = netx.DiGraph()
     code_graph.add_node( "ladderup", code=["value[%d] = value[%d] + 1"],
-                                    values=[("out", "out")])
+                                    values=[("lout", "lout")])
     # extra function can be given by a dictionary as third returnvalue
     # keys must be strings correspdoning to codesnippets
     #def foo():
@@ -61,10 +61,10 @@ def _ladder_code():
     return nodedata, code_graph, functiondictionary
 
 def adder_code():
-    data_dict={ "out":0 }
+    data_dict={ "aout":0 }
     code_graph = netx.DiGraph()
     code_graph.add_node( "reset", code=["value[%d] = 0"],
-                                values=[("out",)])
+                                values=[("aout",)])
     code_graph.add_node( "sum", code=[], values=[])
     code_graph.add_edge( "reset", "sum" ) # reset will be executed before sum
     functiondictionary = {}
@@ -95,7 +95,7 @@ def laddertoadder_push():
     # value pair in values must contain if innode('in') or outnode('out') and
     # the valueidentifier of the corresponding node eg ladder has id with 'out'
     code_graph.add_node( "push", code=["value[%d] = value[%d] + value[%d]"],
-                            values=[(("in","out"),("in","out"),("out","out"))])
+                        values=[(("in","aout"),("in","aout"),("out","lout"))])
 
     return code_graph, after_execution_nodeout, after_execution_nodein, \
                     before_execution_nodeout, before_execution_nodein
@@ -108,7 +108,7 @@ def addertoadder_push():
     asd = [["sum"],["reset"],[],["sum"]]
     code_graph = netx.DiGraph()
     code_graph.add_node( "push", code=["value[%d] = value[%d] + value[%d]"],
-                            values=[(("in","out"),("in","out"),("out","out"))])
+                        values=[(("in","aout"),("in","aout"),("out","aout"))])
 
     return code_graph, *asd
     #return code_graph, after_execution_nodeout, after_execution_nodein, \
