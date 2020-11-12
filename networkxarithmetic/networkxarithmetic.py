@@ -102,16 +102,28 @@ class graphcontainer():
             tmpnodein = edgeinfo[1]
             outtype = self.codegraph.nodes()[ tmpnodeout ][ "calctype" ]
             intype = self.codegraph.nodes()[ tmpnodein ][ "calctype" ]
+
+            # create code template, not usable until valuenames are replaced
             codenode, after_nodeout, after_nodein, \
                     before_nodeout, before_nodein \
                     = self.edge_dict[ (outtype, intype,tmpdata["edgetype"]) ]()
-            _replace_edgecodesnippet_placeholders( codenode, \
-                                    dataname_list, str(tmpnodein), str(tmpnodeout) )
+            try:
+                _replace_edgecodesnippet_placeholders( codenode, \
+                                dataname_list, str(tmpnodein), str(tmpnodeout) )
+            except ValueError as err:
+                err.args = ( *err.args, "node name w type are innode: " \
+                                + "%s w %s; " %( tmpnodein, intype ) \
+                                + "outnode: %s w %s" %( tmpnodeout, outtype, )
+                            )
+                raise err
+            # rename identifier for codesnippet in graph
             tmpmapping = { tmpdata["edgetype"]:
                     str(tmpnodeout)+str(tmpnodein) \
                     + str(edgekey) + tmpdata["edgetype"] }
             codenode = netx.relabel_nodes( codenode, tmpmapping )
             codegraph.update( netx.relabel_nodes( codenode, tmpmapping) )
+
+            # create edges for timing of the code(outnode is exec. after innode)
             for nodetype in after_nodeout:
                 codegraph.add_edge( str(tmpnodeout)+nodetype, *codenode.nodes())
             for nodetype in after_nodein:
@@ -146,7 +158,8 @@ class graphcontainer():
         mycode = "def cycle( value ):\n"
         for layer in nodelayers:
             for node in layer:
-                for line in self.codegraph.nodes()[ node ]["code"]:
+                asd = self.codegraph.nodes()[ node ] # todo replace asd
+                for line in asd["code"]:
                     mycode = mycode +"\t" +line + "\n"
         mycode = mycode + "\treturn value\n"
         mycode = mycode + "return_array[0] = cycle\n"
@@ -159,26 +172,39 @@ class graphcontainer():
         self.cyclefunction = return_array[0]
         #self.cyclefunction = numba.njit( return_array[0] )
 
+dict_valueidentifier_translator = {
+        "in":"innode", "target":"innode", "outedge":"innode",
+        "out":"outnode", "source":"outnode", "inedge":"outnode",
+        }
+
 def _replace_edgecodesnippet_placeholders( codesnippet, \
                                     dataname_list, innodename, outnodename ):
+    """
+    translates, the codesnippets given by the functions saved in the edgelibrary
+    into usable code by the cyclefunction. this function only uses a array
+    with name values
+    :todo: replace innode and outnode with source and target
+    """
     codenodes = codesnippet.nodes(data=True)
     for tmpnode in codenodes:
         tmpdata = tmpnode[1]
         for i in range( len(tmpdata["code"]) ):
             values=[]
             for x in tmpdata["values"][i]:
-                if x[0] == "in":
+                valueidentifier = dict_valueidentifier_translator[ x[0] ]
+                if valueidentifier == "innode":
                     values.append( innodename + x[1] )
-                elif x[0] == "out":
+                elif valueidentifier == "outnode":
                     values.append( outnodename + x[1] )
                 else:
                     raise Exception()
             try:
                 valueplaces = tuple([ dataname_list.index(x) for x in values ])
             except ValueError as err:
-                raise type(err)(*err.args, "make sure value in "\
+                err.args = (*err.args, "make sure value in "\
                                         +"codenode is a list with tuples, "\
-                                        +"e.g. [(1,)] not [(1)]" )
+                                        +"e.g. [(1,)] not [(1)]",)
+                raise err
             tmpdata["code"][i] = tmpdata["code"][i] % valueplaces
 
 def _replace_nodecodesnippet_placeholders( codesnippet, \
