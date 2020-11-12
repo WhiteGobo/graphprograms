@@ -175,7 +175,11 @@ class graphcontainer():
         return_array = [None]
         myglobals = {"return_array":return_array, "np":_np}
         myglobals.update( self.extra_globals )
-        cmd_code = compile( mycode, "networkxarithmetic", "exec" )
+        try:
+            cmd_code = compile( mycode, "networkxarithmetic", "exec" )
+        except SyntaxError:
+            print( "Produced Code: \n", mycode )
+            raise
         exec( cmd_code, myglobals )
         self.cyclefunction = return_array[0]
         #self.cyclefunction = numba.njit( return_array[0] )
