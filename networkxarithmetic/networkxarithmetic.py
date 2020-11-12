@@ -120,8 +120,11 @@ class graphcontainer():
             tmpmapping = { tmpdata["edgetype"]:
                     str(tmpnodeout)+str(tmpnodein) \
                     + str(edgekey) + tmpdata["edgetype"] }
+            # :todo: this seemes like a duplicate
             codenode = netx.relabel_nodes( codenode, tmpmapping )
             codegraph.update( netx.relabel_nodes( codenode, tmpmapping) )
+            # i should check here if every node has a code attribute but this
+            # will be checked later in the code generation
 
             # create edges for timing of the code(outnode is exec. after innode)
             for nodetype in after_nodeout:
@@ -158,9 +161,13 @@ class graphcontainer():
         mycode = "def cycle( value ):\n"
         for layer in nodelayers:
             for node in layer:
-                asd = self.codegraph.nodes()[ node ] # todo replace asd
-                for line in asd["code"]:
-                    mycode = mycode +"\t" +line + "\n"
+                try:
+                    for line in self.codegraph.nodes()[ node ]["code"]:
+                        mycode = mycode +"\t" +line + "\n"
+                except KeyError as err:
+                    err.args = ( *err.args, "most likely an edge was made "\
+                                    + "between not compatible nodes, problem "\
+                                    "timing node is: %s" %( str(node) ))
         mycode = mycode + "\treturn value\n"
         mycode = mycode + "return_array[0] = cycle\n"
 
