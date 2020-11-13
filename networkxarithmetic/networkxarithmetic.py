@@ -43,6 +43,7 @@ class graphcontainer():
 
     def update_calclibrary( self, calc_dict ):
         """
+        Calclib-key correspond to node-attribute 'calctype'
         calc_dict must contain methods to generate codesnippets and reserve
         dataspace
         :type calc_dict: dictionary
@@ -51,6 +52,7 @@ class graphcontainer():
 
     def update_edgelibrary( self, edge_dict ):
         """
+        Edgelib-key correspond to edge-attribute 'edgetype'
         edge_dict assign tuple of (outnodetype, innodetype, edgename) a method
         to create the code
         foo return a codegraph
@@ -147,6 +149,10 @@ class graphcontainer():
                                 + "%s w %s; " %( tmpnodein, intype ) \
                                 + "outnode: %s w %s" %( tmpnodeout, outtype, )
                             )
+                raise err
+            except KeyError as err:
+                err.args = (*err.args, "check value-attribute of edgetype"\
+                            + "(%s, %s, %s)"%(intype, outtype, str(edgekey)))
                 raise err
             # rename identifier for codesnippet in graph
             tmpmapping = { node:str(tmpnodeout)+str(tmpnodein) \
