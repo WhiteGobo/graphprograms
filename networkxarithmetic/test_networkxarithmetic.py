@@ -33,6 +33,45 @@ _twonodesgraph_graphml = """
 </graphml>
 """
 
+_transferweight1graph_graphml = """
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d1" for="edge" attr.name="edgetype" attr.type="string" />
+  <key id="d2" for="edge" attr.name="weight" attr.type="float" />
+  <key id="d0" for="node" attr.name="calctype" attr.type="string" />
+  <graph edgedefault="directed">
+    <node id="1">
+      <data key="d0">ladder</data>
+    </node>
+    <node id="2">
+      <data key="d0">adder</data>
+    </node>
+    <edge source="1" target="2" id="0">
+      <data key="d1">constmul</data>
+      <data key="d2">1.0</data>
+    </edge>
+  </graph>
+</graphml>
+"""
+_transferweight15graph_graphml = """
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d1" for="edge" attr.name="edgetype" attr.type="string" />
+  <key id="d2" for="edge" attr.name="weight" attr.type="float" />
+  <key id="d0" for="node" attr.name="calctype" attr.type="string" />
+  <graph edgedefault="directed">
+    <node id="1">
+      <data key="d0">ladder</data>
+    </node>
+    <node id="2">
+      <data key="d0">adder</data>
+    </node>
+    <edge source="1" target="2" id="0">
+      <data key="d1">constmul</data>
+      <data key="d2">1.5</data>
+    </edge>
+  </graph>
+</graphml>
+"""
+
 # retrieve data nodeid-given:
 # nodedata = graph.nodes( data=True )[nodeid]
 # out_edges = graph.edges( nodeid, data=True )
@@ -87,6 +126,9 @@ def extraglobal_code():
     return data_dict, code_graph, functiondictionary
 
 def laddertoadder_push():
+    """
+    for type control dont use **edgeattr but value=default instead
+    """
     after_execution_nodeout = ["ladderup"]
     after_execution_nodein = ["reset"]
     before_execution_nodeout = []
@@ -95,6 +137,21 @@ def laddertoadder_push():
     # value pair in values must contain if innode('in') or outnode('out') and
     # the valueidentifier of the corresponding node eg ladder has id with 'out'
     code_graph.add_node( "push", code=["value[%d] = value[%d] + value[%d]"],
+                        values=[(("in","aout"),("in","aout"),("out","lout"))])
+
+    return code_graph, after_execution_nodeout, after_execution_nodein, \
+                    before_execution_nodeout, before_execution_nodein
+
+def laddertoadder_constmul( weight=1 ):
+    after_execution_nodeout = ["ladderup"]
+    after_execution_nodein = ["reset"]
+    before_execution_nodeout = []
+    before_execution_nodein = ["sum"]
+    code_graph = netx.DiGraph()
+    # value pair in values must contain if innode('in') or outnode('out') and
+    # the valueidentifier of the corresponding node eg ladder has id with 'out'
+    code_graph.add_node( "push", code=["value[%d] = " + "%d*"%(weight) \
+                                        + "value[%d] + value[%d]"],
                         values=[(("in","aout"),("in","aout"),("out","lout"))])
 
     return code_graph, after_execution_nodeout, after_execution_nodein, \
@@ -144,7 +201,17 @@ class TestNetworkxarithmeticMethods( unittest.TestCase ):
         self.code_library = { "ladder":_ladder_code, "adder":adder_code, \
                 "nodefault":nodefault_code, "extraglobal":extraglobal_code }
         self.edge_library = { ("ladder", "adder", "push"):laddertoadder_push, \
-                            ("adder", "adder", "push"):addertoadder_push }
+                            ("adder", "adder", "push"):addertoadder_push, \
+                            ("ladder", "adder", "constmul"):laddertoadder_constmul,\
+                            }
+
+
+        self.testgraph_weights1 = netx.parse_graphml( \
+                                            _transferweight1graph_graphml, \
+                                            force_multigraph=True)
+        self.testgraph_weights15 = netx.parse_graphml( \
+                                            _transferweight15graph_graphml, \
+                                            force_multigraph=True)
 
     def test_singlenode( self ):
         graphcode1 = arit.graphcontainer()
@@ -202,6 +269,24 @@ class TestNetworkxarithmeticMethods( unittest.TestCase ):
         self.assertEqual( graphcode6.values[0], 0 )
         graphcode6.cycle()
         self.assertEqual( graphcode6.values[0], 1 )
+
+    def test_useedgeonincompatiblenodes( self ):
+        """
+        for compatilblity all values and timing nodes must exist
+        """
+        pass
+
+    def test_usedifferentedgeweights( self ):
+        graphcodeweights1 = arit.graphcontainer()
+        graphcodeweights1.update_calclibrary( self.code_library )
+        graphcodeweights1.update_edgelibrary( self.edge_library )
+        graphcodeweights1.createcode_with_graph( self.testgraph_weights1 )
+        graphcodeweights1.cycle()
+        graphcodeweights15 = arit.graphcontainer()
+        graphcodeweights15.update_calclibrary( self.code_library )
+        graphcodeweights15.update_edgelibrary( self.edge_library )
+        graphcodeweights15.createcode_with_graph( self.testgraph_weights15 )
+        graphcodeweights15.cycle()
 
 
 if __name__=="__main__":

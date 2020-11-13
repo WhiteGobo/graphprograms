@@ -50,15 +50,13 @@ class graphcontainer():
         self._generate_datacontainer()
         self._generate_code()
 
-    def _generate_datacontainer( self ):
+
+    def _generate_codedatafornodes( self, codegraph ):
         """
-        :raises NoStartvalueGiven_Error: raise exception if a default value is 
-                            set to None and no startvalue is given by the graph
+        :todo: rename self.codegraph and codegraph
         """
-        self.extra_globals = {} #create new
         dataname_list = []
         startvalue_list = []
-        codegraph = netx.DiGraph()
         nodes = self.codegraph.nodes( data = True )
         # generate nodes
         for nodeinfo in nodes:
@@ -93,20 +91,37 @@ class graphcontainer():
             tmpmapping = { node:str(tmpnode)+str(node) \
                                      for node in codesnippet.nodes() }
             codegraph.update( netx.relabel_nodes(codesnippet, tmpmapping) )
+        return codegraph, dataname_list, startvalue_list
 
-        # generate edges
+
+    def _generate_codedata_for_edges( self, codegraph, dataname_list ):
+        """
+        :todo: rename codegraph and self.codegraph names doesnt say anything
+        """
         for edgeinfo in self.codegraph.edges( data = True, keys = True ):
             tmpdata = edgeinfo[3]
             edgekey = edgeinfo[2]
             tmpnodeout = edgeinfo[0]
             tmpnodein = edgeinfo[1]
+            otherattributes = dict(edgeinfo[3])
+            otherattributes.pop("edgetype")
+            print(otherattributes)
+            print(edgeinfo[3])
             outtype = self.codegraph.nodes()[ tmpnodeout ][ "calctype" ]
             intype = self.codegraph.nodes()[ tmpnodein ][ "calctype" ]
 
             # create code template, not usable until valuenames are replaced
-            codenode, after_nodeout, after_nodein, \
+            edgecommand = self.edge_dict[ (outtype, intype,tmpdata["edgetype"])]
+            try:
+                codenode, after_nodeout, after_nodein, \
                     before_nodeout, before_nodein \
-                    = self.edge_dict[ (outtype, intype,tmpdata["edgetype"]) ]()
+                    = edgecommand( **otherattributes  )
+            except TypeError as err:
+                err.args = ( *err.args, ("the edge between %s(%s) and %s(%s) "\
+                                +"with command %s has attributes %s")%( \
+                                    str(tmpnodeout), outtype, str(tmpnodein), \
+                                        intype, str(edgekey), otherattributes ))
+                raise err
             try:
                 _replace_edgecodesnippet_placeholders( codenode, \
                                 dataname_list, str(tmpnodein), str(tmpnodeout) )
@@ -135,7 +150,20 @@ class graphcontainer():
                 codegraph.add_edge( *codenode.nodes(), str(tmpnodeout)+nodetype)
             for nodetype in before_nodein:
                 codegraph.add_edge( *codenode.nodes(), str(tmpnodein)+nodetype)
-                            
+        return codegraph
+
+    def _generate_datacontainer( self ):
+        """
+        generates the code without edges with all the data containers needed by
+        the nodes
+        :raises NoStartvalueGiven_Error: raise exception if a default value is 
+                            set to None and no startvalue is given by the graph
+        """
+        self.extra_globals = {} #create new
+        codegraph = netx.DiGraph()
+        codegraph, dataname_list, startvalue_list = \
+                    self._generate_codedatafornodes( codegraph )
+        codegraph = self._generate_codedata_for_edges( codegraph, dataname_list)
 
         # after this there should be th codegraph for _generate_code
         self.dataname_list = dataname_list
