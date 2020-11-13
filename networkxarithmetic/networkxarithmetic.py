@@ -16,6 +16,7 @@ class graphcontainer():
         :var calc_graph: defines the nodes, which hold all values an the 
                     interaction between those nodes.
         """
+        self.compiled_code = None
         self.calc_dict = {}
         self.edge_dict = {}
         self.calc_graph = None
@@ -233,6 +234,7 @@ class graphcontainer():
         exec( cmd_code, myglobals )
         self.cyclefunction = return_array[0]
         #self.cyclefunction = numba.njit( return_array[0] )
+        self.compiled_code = mycode
 
 dict_valueidentifier_translator = {
         "in":"innode", "target":"innode", "outedge":"innode",
