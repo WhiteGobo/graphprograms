@@ -22,6 +22,22 @@ class graphcontainer():
         self.time_graph = None
         self.extra_globals = None
 
+    def transferdatatograph( self ):
+        returngraph = netx.Graph()
+        returngraph.add_nodes_from( self.codegraph )
+        valueid_to_node_dict = dict()
+        for pair in self.value_to_node_and_attribute:
+            nodestovalueid = valueid_to_node_dict.setdefault( pair[1], list() )
+            nodestovalueid.append( pair[0] )
+        for valueid in valueid_to_node_dict:
+            myvalues = dict()
+            for node in valueid_to_node_dict[ valueid ]:
+                i = self.value_to_node_and_attribute.index((node, valueid))
+                y = self.values[i]
+                myvalues.update({ node: y })
+            netx.set_node_attributes( returngraph, myvalues, valueid )
+        return returngraph
+
     def cycle( self ):
         self.values = self.cyclefunction( self.values )
 
@@ -48,13 +64,14 @@ class graphcontainer():
         """
         self.codegraph = netx.MultiDiGraph( graph )
         self._generate_datacontainer()
-        self._generate_code()
+        self._generate_code( self.codesnippet_graph )
 
 
     def _generate_codedatafornodes( self, codegraph ):
         """
         :todo: rename self.codegraph and codegraph
         """
+        self.value_to_node_and_attribute = []
         dataname_list = []
         startvalue_list = []
         nodes = self.codegraph.nodes( data = True )
@@ -83,6 +100,8 @@ class graphcontainer():
                             +"starting value for %s" %(str(nodetype_datakey))  )
                 dataname_list.append( dataname )
                 startvalue_list.append( startvalue )
+                self.value_to_node_and_attribute.append( \
+                                            (tmpnode, nodetype_datakey))
 
             # replace codeplaceholders with datamapping
             _replace_nodecodesnippet_placeholders( codesnippet, dataname_list,\
@@ -130,9 +149,9 @@ class graphcontainer():
                             )
                 raise err
             # rename identifier for codesnippet in graph
-            tmpmapping = { tmpdata["edgetype"]:
-                    str(tmpnodeout)+str(tmpnodein) \
-                    + str(edgekey) + tmpdata["edgetype"] }
+            tmpmapping = { node:str(tmpnodeout)+str(tmpnodein) \
+                                + str(edgekey) +str(node) \
+                                     for node in codenode.nodes() }
             # :todo: this seemes like a duplicate
             codenode = netx.relabel_nodes( codenode, tmpmapping )
             codegraph.update( netx.relabel_nodes( codenode, tmpmapping) )
@@ -167,12 +186,12 @@ class graphcontainer():
         self.dataname_list = dataname_list
         self.startvalue_list = startvalue_list
         self.values = _np.array( startvalue_list, dtype = MYDTYPE )
-        self.codegraph = codegraph
+        self.codesnippet_graph = codegraph
                 
                             
-    def _generate_code( self ):
+    def _generate_code( self, codesnippet_graph ):
         nodelayers=[]
-        tmpsubgraph = netx.DiGraph( self.codegraph )
+        tmpsubgraph = netx.DiGraph( codesnippet_graph )
         tmplastlength = len(tmpsubgraph)
         while len(tmpsubgraph) > 0:
             withoutneighbor = [x for x in tmpsubgraph.nodes() \
@@ -187,7 +206,7 @@ class graphcontainer():
         for layer in nodelayers:
             for node in layer:
                 try:
-                    for line in self.codegraph.nodes()[ node ]["code"]:
+                    for line in codesnippet_graph.nodes()[ node ]["code"]:
                         mycode = mycode +"\t" +line + "\n"
                 except KeyError as err:
                     err.args = ( *err.args, "most likely an edge was made "\

@@ -150,9 +150,9 @@ def laddertoadder_constmul( weight=1 ):
     code_graph = netx.DiGraph()
     # value pair in values must contain if innode('in') or outnode('out') and
     # the valueidentifier of the corresponding node eg ladder has id with 'out'
-    code_graph.add_node( "push", code=["value[%d] = " + "%d*"%(weight) \
-                                        + "value[%d] + value[%d]"],
-                        values=[(("in","aout"),("in","aout"),("out","lout"))])
+    code_graph.add_node( "push", code=["value[%d] = " + "%f*"%(weight) \
+                                        + "value[%d]"],
+                        values=[(("in","aout"),("out","lout"))])
 
     return code_graph, after_execution_nodeout, after_execution_nodein, \
                     before_execution_nodeout, before_execution_nodein
@@ -282,11 +282,16 @@ class TestNetworkxarithmeticMethods( unittest.TestCase ):
         graphcodeweights1.update_edgelibrary( self.edge_library )
         graphcodeweights1.createcode_with_graph( self.testgraph_weights1 )
         graphcodeweights1.cycle()
+        outputgraph = graphcodeweights1.transferdatatograph()
+        self.assertEqual( outputgraph.nodes( data=True )['2']["aout"], 1 )
+
         graphcodeweights15 = arit.graphcontainer()
         graphcodeweights15.update_calclibrary( self.code_library )
         graphcodeweights15.update_edgelibrary( self.edge_library )
         graphcodeweights15.createcode_with_graph( self.testgraph_weights15 )
         graphcodeweights15.cycle()
+        outputgraph = graphcodeweights15.transferdatatograph()
+        self.assertEqual( outputgraph.nodes( data=True )['2']["aout"], 1.5 )
 
 
 if __name__=="__main__":
