@@ -152,7 +152,7 @@ class graphcontainer():
                 raise err
             except KeyError as err:
                 err.args = (*err.args, "check value-attribute of edgetype"\
-                            + "(%s, %s, %s)"%(intype, outtype, str(edgekey)))
+                        + "(%s, %s, %s)"%(intype, outtype, tmpdata["edgetype"]))
                 raise err
             # rename identifier for codesnippet in graph
             tmpmapping = { node:str(tmpnodeout)+str(tmpnodein) \
