@@ -105,8 +105,6 @@ class graphcontainer():
             tmpnodein = edgeinfo[1]
             otherattributes = dict(edgeinfo[3])
             otherattributes.pop("edgetype")
-            print(otherattributes)
-            print(edgeinfo[3])
             outtype = self.codegraph.nodes()[ tmpnodeout ][ "calctype" ]
             intype = self.codegraph.nodes()[ tmpnodein ][ "calctype" ]
 
@@ -170,7 +168,6 @@ class graphcontainer():
         self.startvalue_list = startvalue_list
         self.values = _np.array( startvalue_list, dtype = MYDTYPE )
         self.codegraph = codegraph
-
                 
                             
     def _generate_code( self ):
