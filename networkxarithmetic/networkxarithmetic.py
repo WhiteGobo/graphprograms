@@ -155,6 +155,7 @@ class graphcontainer():
                 err.args = (*err.args, "check value-attribute of edgetype"\
                         + "(%s, %s, %s)"%(intype, outtype, tmpdata["edgetype"]))
                 raise err
+
             # rename identifier for codesnippet in graph
             tmpmapping = { node:str(tmpnodeout)+str(tmpnodein) \
                                 + str(edgekey) +str(node) \
@@ -194,8 +195,9 @@ class graphcontainer():
         self.startvalue_list = startvalue_list
         self.values = _np.array( startvalue_list, dtype = MYDTYPE )
         self.codesnippet_graph = codegraph
-                
-                            
+
+
+
     def _generate_code( self, codesnippet_graph ):
         nodelayers=[]
         tmpsubgraph = netx.DiGraph( codesnippet_graph )
@@ -269,7 +271,14 @@ def _replace_edgecodesnippet_placeholders( codesnippet, \
                                         +"codenode is a list with tuples, "\
                                         +"e.g. [(1,)] not [(1)]",)
                 raise err
-            tmpdata["code"][i] = tmpdata["code"][i] % valueplaces
+            try:
+                tmpdata["code"][i] = tmpdata["code"][i] % valueplaces
+            except TypeError as err:
+                err.args = ( *err.args, ("between nodes %s and %s a function"\
+                            +"line %s is formatted with values %s") \
+                            %( innodename, outnodename, tmpdata["code"][i], \
+                            values ))
+                raise err
 
 def _replace_nodecodesnippet_placeholders( codesnippet, \
                                     dataname_list, nodename):
