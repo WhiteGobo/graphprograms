@@ -2,6 +2,8 @@ import networkx as netx
 import numpy as _np
 MYDTYPE  = _np.float64
 
+import hashlib
+
 class NoStartvalueGiven_Error( Exception ):
     pass
 class CycleToTree_Error( Exception ):
