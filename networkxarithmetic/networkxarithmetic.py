@@ -152,6 +152,10 @@ class graphcontainer():
                                     str(tmpnodeout), outtype, str(tmpnodein), \
                                         intype, str(edgekey), otherattributes ))
                 raise err
+            except Exception as err:
+                err.args = ( *err.args, "happend at edgetype from %s to %S" \
+                                    %(outtype, intype))
+                raise err
             self.extra_globals.update( function_globals )
             try:
                 _replace_edgecodesnippet_placeholders( codenode, \
