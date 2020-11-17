@@ -313,9 +313,9 @@ def _replace_nodecodesnippet_placeholders( codesnippet, \
     for tmpnode in codenodes:
         tmpdata = tmpnode[1]
         for i in range( len(tmpdata["code"]) ):
-            values = tuple([tovaluename( node, datakey ) \
+            valuenames = tuple([tovaluename( node, datakey ) \
                         for datakey in tmpdata["values"][i] ])
-            tmpdata["code"][i] = tmpdata["code"][i] % values
+            tmpdata["code"][i] = tmpdata["code"][i] % valuenames
             #values = [ nodename + single \
             #                for single in tmpdata["values"][i]]
             #try:
