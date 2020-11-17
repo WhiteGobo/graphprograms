@@ -302,7 +302,7 @@ def _replace_edgecodesnippet_placeholders( codesnippet, \
                                         +"e.g. [(1,)] not [(1)]",)
                 raise err
             try:
-                tmpdata["code"][i] = tmpdata["code"][i] % valuenames
+                tmpdata["code"][i] = tmpdata["code"][i] % tuple(valuenames)
             except TypeError as err:
                 err.args = ( *err.args, ("between nodes %s and %s a function"\
                             +"line %s is formatted with values %s") \
