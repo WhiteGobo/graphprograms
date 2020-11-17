@@ -195,7 +195,7 @@ class graphcontainer():
         """
         self.extra_globals = {} #create new
         codegraph = netx.DiGraph()
-        codegraph, dataname_list, startvalue_list = \
+        codegraph, dataname_list, startvalue_list, valuename_to_graphvalue, valuename_order = \
                     self._generate_codedatafornodes( codegraph )
         codegraph = self._generate_codedata_for_edges( codegraph, dataname_list)
 
@@ -313,11 +313,9 @@ def _replace_nodecodesnippet_placeholders( codesnippet, \
     for tmpnode in codenodes:
         tmpdata = tmpnode[1]
         for i in range( len(tmpdata["code"]) ):
-            values = [tovaluename( node, datakey ) \
-                        for datakey in tmpdata["values"] ]
+            values = tuple([tovaluename( node, datakey ) \
+                        for datakey in tmpdata["values"][i] ])
             tmpdata["code"][i] = tmpdata["code"][i] % values
-        print(tmpdata["code"])
-    raise Exception()
             #values = [ nodename + single \
             #                for single in tmpdata["values"][i]]
             #try:
@@ -332,4 +330,4 @@ def tovaluename( node, nodetype_datakey ):
     """
     :todo: replace str(nodetype_datakey) to nodetype_datakey
     """
-    return str(node) + str(nodetype_datakey)
+    return str(node) + nodetype_datakey
