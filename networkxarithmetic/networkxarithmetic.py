@@ -77,6 +77,8 @@ class graphcontainer():
         self.value_to_node_and_attribute = []
         dataname_list = []
         startvalue_list = []
+        valuename_list = []
+        valuename_to_graphvalue = {} # {"value123(hash)": (nodeid, "attr")}
         nodes = self.codegraph.nodes( data = True )
         # generate nodes
         for nodeinfo in nodes:
@@ -91,7 +93,13 @@ class graphcontainer():
                 raise  err
             self.extra_globals.update( function_globals )
             for nodetype_datakey in nodetypedata_dict:
-                dataname = str(tmpnode) + nodetype_datakey
+                dataname = tovaluename(tmpnode,  nodetype_datakey )
+                tmp_valuename = "value" + str(dataname.__hash__())
+                valuename_to_graphvalue.update( {\
+                            tmp_valuename: \
+                            ( tmpnode, nodetype_datakey )
+                            })
+                valuename_list.append( tmp_valuename )
                 # use as starting value value given in graph
                 # and else the default value given via nodetypedata_dict
                 startvalue = nodes[tmpnode].setdefault( nodetype_datakey, \
@@ -113,7 +121,8 @@ class graphcontainer():
             tmpmapping = { node:str(tmpnode)+str(node) \
                                      for node in codesnippet.nodes() }
             codegraph.update( netx.relabel_nodes(codesnippet, tmpmapping) )
-        return codegraph, dataname_list, startvalue_list
+        return codegraph, dataname_list, startvalue_list, \
+                        valuename_to_graphvalue, tuple( valuename_list )
 
 
     def _generate_codedata_for_edges( self, codegraph, dataname_list ):
@@ -211,7 +220,10 @@ class graphcontainer():
                 raise CycleToTree_Error("couldnt create valid functionorder")
             tmplastlength = len(tmpsubgraph)
 
-        mycode = "def cycle( value ):\n"
+        mycode = "def cycle( "
+        for valuename in self.valuename_to_graphvalue:
+            mycode = mycode + valuename + ", "
+        mycode = mycode + "):\n"
         for layer in nodelayers:
             for node in layer:
                 try:
@@ -296,17 +308,26 @@ def _replace_edgecodesnippet_placeholders( codesnippet, \
                 raise err
 
 def _replace_nodecodesnippet_placeholders( codesnippet, \
-                                    dataname_list, nodename):
+                                    dataname_list, nodename, node):
     codenodes = codesnippet.nodes(data=True)
     for tmpnode in codenodes:
         tmpdata = tmpnode[1]
         for i in range( len(tmpdata["code"]) ):
-            values = [ nodename + single \
-                            for single in tmpdata["values"][i]]
-            try:
-                valueplaces = tuple([ dataname_list.index(x) for x in values ])
-            except ValueError as err:
-                raise type(err)(*err.args, "make sure value in "\
-                                        +"codenode is a list with tuples, "\
-                                        +"e.g. [(1,)] not [(1)]" )
-            tmpdata["code"][i] = tmpdata["code"][i] % valueplaces
+            tmp_valuename = tovaluename( node, nodetype_datakey )
+            values = [tovaluename( node, datakey ) \
+                        for datakey in tmpdata["values"] ]
+            tmpdata["code"][i] = tmpdata["code"][i] % values
+        print(tmpdata["code"])
+    raise Exception()
+            #values = [ nodename + single \
+            #                for single in tmpdata["values"][i]]
+            #try:
+            #    valueplaces = tuple([ dataname_list.index(x) for x in values ])
+            #except ValueError as err:
+            #    raise type(err)(*err.args, "make sure value in "\
+            #                            +"codenode is a list with tuples, "\
+            #                            +"e.g. [(1,)] not [(1)]" )
+            #tmpdata["code"][i] = tmpdata["code"][i] % valueplaces
+
+def tovaluename( node, nodetype_datakey )
+    return str(tmpnode) + nodetype_datakey
