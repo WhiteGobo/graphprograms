@@ -153,7 +153,7 @@ class graphcontainer():
                 raise err
             try:
                 _replace_edgecodesnippet_placeholders( codenode, \
-                                dataname_list, str(tmpnodein), str(tmpnodeout) )
+                                dataname_list, str(tmpnodein), str(tmpnodeout), tmpnodein, tmpnodeout )
             except ValueError as err:
                 err.args = ( *err.args, "node name w type are innode: " \
                                 + "%s w %s; " %( tmpnodein, intype ) \
@@ -271,7 +271,7 @@ dict_valueidentifier_translator = {
         }
 
 def _replace_edgecodesnippet_placeholders( codesnippet, \
-                                    dataname_list, innodename, outnodename ):
+                                    dataname_list, innodename, outnodename, innode, outnode ):
     """
     translates, the codesnippets given by the functions saved in the edgelibrary
     into usable code by the cyclefunction. this function only uses a array
@@ -283,12 +283,15 @@ def _replace_edgecodesnippet_placeholders( codesnippet, \
         tmpdata = tmpnode[1]
         for i in range( len(tmpdata["code"]) ):
             values=[]
+            valuenames = []
             for x in tmpdata["values"][i]:
                 valueidentifier = dict_valueidentifier_translator[ x[0] ]
                 if valueidentifier == "innode":
                     values.append( innodename + x[1] )
+                    valuenames.append( tovaluename( innode, x[1]))
                 elif valueidentifier == "outnode":
                     values.append( outnodename + x[1] )
+                    valuenames.append( tovaluename( outnode, x[1]))
                 else:
                     raise Exception()
             try:
@@ -299,7 +302,7 @@ def _replace_edgecodesnippet_placeholders( codesnippet, \
                                         +"e.g. [(1,)] not [(1)]",)
                 raise err
             try:
-                tmpdata["code"][i] = tmpdata["code"][i] % valueplaces
+                tmpdata["code"][i] = tmpdata["code"][i] % valuenames
             except TypeError as err:
                 err.args = ( *err.args, ("between nodes %s and %s a function"\
                             +"line %s is formatted with values %s") \
