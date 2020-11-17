@@ -136,7 +136,7 @@ def laddertoadder_push():
     code_graph = netx.DiGraph()
     # value pair in values must contain if innode('in') or outnode('out') and
     # the valueidentifier of the corresponding node eg ladder has id with 'out'
-    code_graph.add_node( "push", code=["value[%d] = value[%d] + value[%d]"],
+    code_graph.add_node( "push", code=["%s = %s + %s"],
                         values=[(("in","aout"),("in","aout"),("out","lout"))])
 
     return code_graph, after_execution_nodeout, after_execution_nodein, \
@@ -150,8 +150,8 @@ def laddertoadder_constmul( weight=1 ):
     code_graph = netx.DiGraph()
     # value pair in values must contain if innode('in') or outnode('out') and
     # the valueidentifier of the corresponding node eg ladder has id with 'out'
-    code_graph.add_node( "push", code=["value[%d] = " + "%f*"%(weight) \
-                                        + "value[%d]"],
+    code_graph.add_node( "push", code=["%s = " + "%f*"%(weight) \
+                                        + "%s"],
                         values=[(("in","aout"),("out","lout"))])
 
     return code_graph, after_execution_nodeout, after_execution_nodein, \
@@ -164,7 +164,7 @@ def addertoadder_push():
     #before_execution_nodein = ["sum"]
     asd = [["sum"],["reset"],[],["sum"]]
     code_graph = netx.DiGraph()
-    code_graph.add_node( "push", code=["value[%d] = value[%d] + value[%d]"],
+    code_graph.add_node( "push", code=["%s = %s + %s"],
                         values=[(("in","aout"),("in","aout"),("out","aout"))])
 
     return code_graph, *asd
