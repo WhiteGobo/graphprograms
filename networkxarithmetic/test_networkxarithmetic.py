@@ -89,7 +89,7 @@ def _ladder_code():
     # codesnippets will data with value[%d]
     # temporary data can be used
     code_graph = netx.DiGraph()
-    code_graph.add_node( "ladderup", code=["value[%d] = value[%d] + 1"],
+    code_graph.add_node( "ladderup", code=["%s = %s + 1"],
                                     values=[("lout", "lout")])
     # extra function can be given by a dictionary as third returnvalue
     # keys must be strings correspdoning to codesnippets
@@ -102,7 +102,7 @@ def _ladder_code():
 def adder_code():
     data_dict={ "aout":0 }
     code_graph = netx.DiGraph()
-    code_graph.add_node( "reset", code=["value[%d] = 0"],
+    code_graph.add_node( "reset", code=["%s = 0"],
                                 values=[("aout",)])
     code_graph.add_node( "sum", code=[], values=[])
     code_graph.add_edge( "reset", "sum" ) # reset will be executed before sum
@@ -121,7 +121,7 @@ def extraglobal_code():
         return 1
     functiondictionary = { "giveone":mygiveone }
     code_graph = netx.DiGraph()
-    code_graph.add_node( "reset", code=["value[%d] = giveone()"],
+    code_graph.add_node( "reset", code=["%s = giveone()"],
                                 values=[("myvalue",)])
     return data_dict, code_graph, functiondictionary
 
