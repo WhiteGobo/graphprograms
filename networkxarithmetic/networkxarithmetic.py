@@ -116,7 +116,7 @@ class graphcontainer():
 
             # replace codeplaceholders with datamapping
             _replace_nodecodesnippet_placeholders( codesnippet, dataname_list,\
-                                                   str(tmpnode) )
+                                                   str(tmpnode), tmpnode )
             # rename nodes
             tmpmapping = { node:str(tmpnode)+str(node) \
                                      for node in codesnippet.nodes() }
@@ -313,7 +313,6 @@ def _replace_nodecodesnippet_placeholders( codesnippet, \
     for tmpnode in codenodes:
         tmpdata = tmpnode[1]
         for i in range( len(tmpdata["code"]) ):
-            tmp_valuename = tovaluename( node, nodetype_datakey )
             values = [tovaluename( node, datakey ) \
                         for datakey in tmpdata["values"] ]
             tmpdata["code"][i] = tmpdata["code"][i] % values
@@ -329,5 +328,8 @@ def _replace_nodecodesnippet_placeholders( codesnippet, \
             #                            +"e.g. [(1,)] not [(1)]" )
             #tmpdata["code"][i] = tmpdata["code"][i] % valueplaces
 
-def tovaluename( node, nodetype_datakey )
-    return str(tmpnode) + nodetype_datakey
+def tovaluename( node, nodetype_datakey ):
+    """
+    :todo: replace str(nodetype_datakey) to nodetype_datakey
+    """
+    return str(node) + str(nodetype_datakey)
