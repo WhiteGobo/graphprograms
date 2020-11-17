@@ -93,8 +93,7 @@ class graphcontainer():
                 raise  err
             self.extra_globals.update( function_globals )
             for nodetype_datakey in nodetypedata_dict:
-                dataname = tovaluename(tmpnode,  nodetype_datakey )
-                tmp_valuename = "value" + str(dataname.__hash__())
+                tmp_valuename = tovaluename(tmpnode,  nodetype_datakey )
                 valuename_to_graphvalue.update( {\
                             tmp_valuename: \
                             ( tmpnode, nodetype_datakey )
@@ -336,4 +335,4 @@ def tovaluename( node, nodetype_datakey ):
     """
     :todo: replace str(nodetype_datakey) to nodetype_datakey
     """
-    return str(node) + nodetype_datakey
+    return "value" + str( hashlib.sha1(str(node) + nodetype_datakey) )
