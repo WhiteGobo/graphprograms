@@ -331,4 +331,4 @@ def tovaluename( node, nodetype_datakey ):
     :todo: replace str(nodetype_datakey) to nodetype_datakey
     """
     return "value" + str( hashlib.sha1(\
-            (str(node) + nodetype_datakey).encode('utf-8') ))
+            (str(node) + nodetype_datakey).encode('utf-8') ).hexdigest() )
