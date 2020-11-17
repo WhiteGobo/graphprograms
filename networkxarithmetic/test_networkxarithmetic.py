@@ -140,7 +140,7 @@ def laddertoadder_push():
                         values=[(("in","aout"),("in","aout"),("out","lout"))])
 
     return code_graph, after_execution_nodeout, after_execution_nodein, \
-                    before_execution_nodeout, before_execution_nodein
+                    before_execution_nodeout, before_execution_nodein, {}
 
 def laddertoadder_constmul( weight=1 ):
     after_execution_nodeout = ["ladderup"]
@@ -155,7 +155,7 @@ def laddertoadder_constmul( weight=1 ):
                         values=[(("in","aout"),("out","lout"))])
 
     return code_graph, after_execution_nodeout, after_execution_nodein, \
-                    before_execution_nodeout, before_execution_nodein
+                    before_execution_nodeout, before_execution_nodein, {}
 
 def addertoadder_push():
     #after_execution_nodeout = ["sum"]
@@ -167,7 +167,7 @@ def addertoadder_push():
     code_graph.add_node( "push", code=["%s = %s + %s"],
                         values=[(("in","aout"),("in","aout"),("out","aout"))])
 
-    return code_graph, *asd
+    return code_graph, *asd, {}
     #return code_graph, after_execution_nodeout, after_execution_nodein, \
     #                before_execution_nodeout, before_execution_nodein
     
