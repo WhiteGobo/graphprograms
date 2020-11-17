@@ -197,9 +197,12 @@ class graphcontainer():
         codegraph = netx.DiGraph()
         codegraph, dataname_list, startvalue_list, valuename_to_graphvalue, valuename_order = \
                     self._generate_codedatafornodes( codegraph )
+
         codegraph = self._generate_codedata_for_edges( codegraph, dataname_list)
 
         # after this there should be th codegraph for _generate_code
+        self.valuename_to_graphvalue = valuename_to_graphvalue
+        self.valuename_order = valuename_order
         self.dataname_list = dataname_list
         self.startvalue_list = startvalue_list
         self.values = _np.array( startvalue_list, dtype = MYDTYPE )
@@ -221,7 +224,7 @@ class graphcontainer():
             tmplastlength = len(tmpsubgraph)
 
         mycode = "def cycle( "
-        for valuename in self.valuename_to_graphvalue:
+        for valuename in self.valuename_order:
             mycode = mycode + valuename + ", "
         mycode = mycode + "):\n"
         for layer in nodelayers:
