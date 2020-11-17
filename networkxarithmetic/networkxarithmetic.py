@@ -110,7 +110,7 @@ class graphcontainer():
                             "node %s with " %( str(tmpnode) ) \
                             +"nodetype %s needs a "%(tmpdata["calctype"])\
                             +"starting value for %s" %(str(nodetype_datakey))  )
-                dataname_list.append( dataname )
+                #dataname_list.append( dataname )
                 startvalue_list.append( startvalue )
                 self.value_to_node_and_attribute.append( \
                                             (tmpnode, nodetype_datakey))
@@ -298,13 +298,6 @@ def _replace_edgecodesnippet_placeholders( codesnippet, \
                     valuenames.append( tovaluename( outnode, x[1]))
                 else:
                     raise Exception()
-            try:
-                valueplaces = tuple([ dataname_list.index(x) for x in values ])
-            except ValueError as err:
-                err.args = (*err.args, "make sure value in "\
-                                        +"codenode is a list with tuples, "\
-                                        +"e.g. [(1,)] not [(1)]",)
-                raise err
             try:
                 tmpdata["code"][i] = tmpdata["code"][i] % tuple(valuenames)
             except TypeError as err:
