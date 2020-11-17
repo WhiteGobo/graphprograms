@@ -60,14 +60,14 @@ class graphcontainer():
         """
         self.edge_dict.update( edge_dict )
 
-    def createcode_with_graph( self, graph ):
+    def createcode_with_graph( self, graph, numba_support=False ):
         """
         the calc_dict must contain methods for all node in graph
         :type graph: networkx.MultiDiGraph
         """
         self.codegraph = netx.MultiDiGraph( graph )
         self._generate_datacontainer()
-        self._generate_code( self.codesnippet_graph )
+        self._generate_code( self.codesnippet_graph, numba_support )
 
 
     def _generate_codedatafornodes( self, codegraph ):
@@ -198,7 +198,7 @@ class graphcontainer():
 
 
 
-    def _generate_code( self, codesnippet_graph ):
+    def _generate_code( self, codesnippet_graph, numba_support ):
         nodelayers=[]
         tmpsubgraph = netx.DiGraph( codesnippet_graph )
         tmplastlength = len(tmpsubgraph)
@@ -234,8 +234,17 @@ class graphcontainer():
             print( "Produced Code: \n", mycode )
             raise
         exec( cmd_code, myglobals )
-        self.cyclefunction = return_array[0]
-        #self.cyclefunction = numba.njit( return_array[0] )
+        if numba_support:
+            print("start compilation")
+            import numba
+            #signum = "float32(float32[%d])"%(len(self.dataname_list))
+            signum = numba.float32( numba.types.Array(numba.float32, len(self.dataname_list), "A"))
+            myjitter = numba.njit( signum )
+            self.cyclefunction = myjitter( return_array[0] )
+            #self.cyclefunction = numba.jit( return_array[0], signature=signum, nopython=True )
+            print("end compilation")
+        else:
+            self.cyclefunction = return_array[0]
         self.compiled_code = mycode
 
 dict_valueidentifier_translator = {
