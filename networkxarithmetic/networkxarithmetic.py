@@ -42,7 +42,7 @@ class graphcontainer():
         return returngraph
 
     def cycle( self ):
-        self.values = self.cyclefunction( self.values )
+        self.values = self.cyclefunction( *self.values )
 
     def update_calclibrary( self, calc_dict ):
         """
@@ -239,11 +239,10 @@ class graphcontainer():
                                     "timing node is: %s" %( str(node) ))
                     raise err
         #mycode = mycode + "\treturn *value\n"
-        mycode = mycode + "\treturn"
-        for i in range(len(self.dataname_list)-1):
-            mycode = mycode + " value[%d],"%(i)
-        mycode = mycode + " value[%d] \n" %(len(self.dataname_list)-1)
-        mycode = mycode + "return_array[0] = cycle\n"
+        mycode = mycode + "\treturn "
+        for valuename in self.valuename_order:
+            mycode = mycode + valuename + ", "
+        mycode = mycode + "\nreturn_array[0] = cycle\n"
 
         return_array = [None]
         myglobals = {"return_array":return_array, "np":_np}
