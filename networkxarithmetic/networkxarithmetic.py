@@ -153,7 +153,7 @@ class graphcontainer():
                                         intype, str(edgekey), otherattributes ))
                 raise err
             except Exception as err:
-                err.args = ( *err.args, "happend at edgetype from %s to %S" \
+                err.args = ( *err.args, "happend at edgetype from %s to %s" \
                                     %(outtype, intype))
                 raise err
             self.extra_globals.update( function_globals )
