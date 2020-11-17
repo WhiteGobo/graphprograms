@@ -222,7 +222,11 @@ class graphcontainer():
                                     + "between not compatible nodes, problem "\
                                     "timing node is: %s" %( str(node) ))
                     raise err
-        mycode = mycode + "\treturn value\n"
+        #mycode = mycode + "\treturn *value\n"
+        mycode = mycode + "\treturn"
+        for i in range(len(self.dataname_list)-1):
+            mycode = mycode + " value[%d],"%(i)
+        mycode = mycode + " value[%d] \n" %(len(self.dataname_list)-1)
         mycode = mycode + "return_array[0] = cycle\n"
 
         return_array = [None]
@@ -237,9 +241,11 @@ class graphcontainer():
         if numba_support:
             print("start compilation")
             import numba
-            #signum = "float32(float32[%d])"%(len(self.dataname_list))
-            signum = numba.float32( numba.types.Array(numba.float32, len(self.dataname_list), "A"))
-            myjitter = numba.njit( signum )
+            #signum = numba.float32[:]( numba.types.Array(numba.float32, len(self.dataname_list), "A"))
+            #signum = numba.float32[:]( numba.float32[:] )
+            #myjitter = numba.njit( signum )
+            myjitter = numba.jit #(signum) #cant use njit because return of arrays
+                                # is not supported yet
             self.cyclefunction = myjitter( return_array[0] )
             #self.cyclefunction = numba.jit( return_array[0], signature=signum, nopython=True )
             print("end compilation")
