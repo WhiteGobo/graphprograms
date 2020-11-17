@@ -144,7 +144,7 @@ class graphcontainer():
             edgecommand = self.edge_dict[ (outtype, intype,tmpdata["edgetype"])]
             try:
                 codenode, after_nodeout, after_nodein, \
-                    before_nodeout, before_nodein \
+                    before_nodeout, before_nodein, function_globals \
                     = edgecommand( **otherattributes  )
             except TypeError as err:
                 err.args = ( *err.args, ("the edge between %s(%s) and %s(%s) "\
@@ -152,6 +152,7 @@ class graphcontainer():
                                     str(tmpnodeout), outtype, str(tmpnodein), \
                                         intype, str(edgekey), otherattributes ))
                 raise err
+            self.extra_globals.update( function_globals )
             try:
                 _replace_edgecodesnippet_placeholders( codenode, \
                                 dataname_list, str(tmpnodein), str(tmpnodeout), tmpnodein, tmpnodeout )
