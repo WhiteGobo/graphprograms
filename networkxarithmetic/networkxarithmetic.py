@@ -3,6 +3,7 @@ import numpy as _np
 MYDTYPE  = _np.float64
 
 import hashlib
+import time
 
 class NoStartvalueGiven_Error( Exception ):
     pass
@@ -233,20 +234,24 @@ class graphcontainer():
         for valuename in self.valuename_order:
             mycode = mycode + valuename + ", "
         mycode = mycode + "):\n"
+        tmpnodes = codesnippet_graph.nodes()
         for layer in nodelayers:
             for node in layer:
                 try:
-                    for line in codesnippet_graph.nodes()[ node ]["code"]:
-                        mycode = mycode +"\t" +line + "\n"
+                    lines = "\n\t".join( tmpnodes()[ node ][ "code" ])
+                    #for line in codesnippet_graph.nodes()[ node ]["code"]:
+                    #    mycode = mycode +"\t" +line + "\n"
                 except KeyError as err:
                     err.args = ( *err.args, "most likely an edge was made "\
                                     + "between not compatible nodes, problem "\
                                     "timing node is: %s" %( str(node) ))
                     raise err
-        #mycode = mycode + "\treturn *value\n"
-        mycode = mycode + "\treturn "
-        for valuename in self.valuename_order:
-            mycode = mycode + valuename + ", "
+                mycode = "".join((mycode, "\t", lines, "\n"))
+
+        mycode = mycode + "\treturn " + ",".join(self.valuename_order) + ","
+        #mycode = mycode + "\treturn "
+        #for valuename in self.valuename_order:
+        #    mycode = mycode + valuename + ", "
         mycode = mycode + "\nreturn_array[0] = cycle\n"
 
         return_array = [None]
@@ -264,7 +269,7 @@ class graphcontainer():
             #signum = numba.float32[:]( numba.types.Array(numba.float32, len(self.dataname_list), "A"))
             #signum = numba.float32[:]( numba.float32[:] )
             #myjitter = numba.njit( signum )
-            myjitter = numba.jit #(signum) #cant use njit because return of arrays
+            myjitter = numba.njit #(signum) #cant use njit because return of arrays
                                 # is not supported yet
             self.cyclefunction = myjitter( return_array[0] )
             #self.cyclefunction = numba.jit( return_array[0], signature=signum, nopython=True )
