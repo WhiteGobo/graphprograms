@@ -230,24 +230,8 @@ class graphcontainer():
                 raise CycleToTree_Error("couldnt create valid functionorder")
             tmplastlength = len(tmpsubgraph)
 
-        mycode = "def cycle( "
-        for valuename in self.valuename_order:
-            mycode = mycode + valuename + ", "
-        mycode = mycode + "):\n"
-        tmpnodes = codesnippet_graph.nodes()
-        for layer in nodelayers:
-            for node in layer:
-                try:
-                    lines = "\n\t".join( tmpnodes()[ node ][ "code" ])
-                except KeyError as err:
-                    err.args = ( *err.args, "most likely an edge was made "\
-                                    + "between not compatible nodes, problem "\
-                                    "timing node is: %s" %( str(node) ))
-                    raise err
-                mycode = "".join((mycode, "\t", lines, "\n"))
-
-        mycode = mycode + "\treturn " + ",".join(self.valuename_order) + ","
-        mycode = mycode + "\nreturn_array[0] = cycle\n"
+        nodetocode_dict = netx.get_node_attributes( codesnippet_graph, "code")
+        mycode =_combinecode( self.valuename_order, nodetocode_dict, nodelayers)
 
         return_array = [None]
         myglobals = {"return_array":return_array, "np":_np}
@@ -277,6 +261,27 @@ dict_valueidentifier_translator = {
         "in":"innode", "target":"innode", "outedge":"innode",
         "out":"outnode", "source":"outnode", "inedge":"outnode",
         }
+
+def _combinecode( valuename_ordered, nodetocode_dict, nodelayers ):
+    mycode = "def cycle( "
+    for valuename in valuename_ordered:
+        mycode = mycode + valuename + ", "
+    mycode = mycode + "):\n"
+    for layer in nodelayers:
+        for node in layer:
+            try:
+                lines = "\n\t".join(nodetocode_dict[ node ])
+                #lines = "\n\t".join( tmpnodes()[ node ][ "code" ])
+            except KeyError as err:
+                err.args = ( *err.args, "most likely an edge was made "\
+                                + "between not compatible nodes, problem "\
+                                "timing node is: %s" %( str(node) ))
+                raise err
+            mycode = "".join((mycode, "\t", lines, "\n"))
+
+    mycode = mycode + "\treturn " + ",".join(valuename_ordered) + ","
+    mycode = mycode + "\nreturn_array[0] = cycle\n"
+    return mycode
 
 def _replace_edgecodesnippet_placeholders( codesnippet, \
                                     dataname_list, innodename, outnodename, innode, outnode ):
