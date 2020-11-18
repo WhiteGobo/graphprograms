@@ -231,7 +231,8 @@ class graphcontainer():
             tmplastlength = len(tmpsubgraph)
 
         nodetocode_dict = netx.get_node_attributes( codesnippet_graph, "code")
-        mycode =_combinecode( self.valuename_order, nodetocode_dict, nodelayers)
+        mycode =_combinecode( self.valuename_order, nodetocode_dict, \
+                                nodelayers, 0)
 
         return_array = [None]
         myglobals = {"return_array":return_array, "np":_np}
@@ -262,7 +263,7 @@ dict_valueidentifier_translator = {
         "out":"outnode", "source":"outnode", "inedge":"outnode",
         }
 
-def _combinecode( valuename_ordered, nodetocode_dict, nodelayers ):
+def _combinecode( valuename_ordered, nodetocode_dict, nodelayers, returnindex ):
     mycode = "def cycle( "
     for valuename in valuename_ordered:
         mycode = mycode + valuename + ", "
@@ -280,7 +281,7 @@ def _combinecode( valuename_ordered, nodetocode_dict, nodelayers ):
             mycode = "".join((mycode, "\t", lines, "\n"))
 
     mycode = mycode + "\treturn " + ",".join(valuename_ordered) + ","
-    mycode = mycode + "\nreturn_array[0] = cycle\n"
+    mycode = mycode + "\nreturn_array[%d] = cycle\n" %( returnindex )
     return mycode
 
 def _replace_edgecodesnippet_placeholders( codesnippet, \
