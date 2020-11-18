@@ -239,8 +239,6 @@ class graphcontainer():
             for node in layer:
                 try:
                     lines = "\n\t".join( tmpnodes()[ node ][ "code" ])
-                    #for line in codesnippet_graph.nodes()[ node ]["code"]:
-                    #    mycode = mycode +"\t" +line + "\n"
                 except KeyError as err:
                     err.args = ( *err.args, "most likely an edge was made "\
                                     + "between not compatible nodes, problem "\
@@ -249,9 +247,6 @@ class graphcontainer():
                 mycode = "".join((mycode, "\t", lines, "\n"))
 
         mycode = mycode + "\treturn " + ",".join(self.valuename_order) + ","
-        #mycode = mycode + "\treturn "
-        #for valuename in self.valuename_order:
-        #    mycode = mycode + valuename + ", "
         mycode = mycode + "\nreturn_array[0] = cycle\n"
 
         return_array = [None]
