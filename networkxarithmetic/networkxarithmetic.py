@@ -231,11 +231,23 @@ class graphcontainer():
             tmplastlength = len(tmpsubgraph)
 
         nodetocode_dict = netx.get_node_attributes( codesnippet_graph, "code")
-        mycode =_combinecode( self.valuename_order, nodetocode_dict, \
-                                nodelayers, 0)
+        if numba_support:
+            usedvaluesdict = netx.get_node_attributes( codesnippet_graph, \
+                                                                "usedvalues")
+            mycode, number_functions = _smallfunction_combinecode( \
+                                                self.valuename_order, \
+                                                nodetocode_dict, nodelayers,\
+                                                usedvaluesdict)
+        else:
+            mycode = _combinecode( self.valuename_order, \
+                                                nodetocode_dict, nodelayers)
+            number_functions = 1
 
-        return_array = [None]
+        return_array = [None] * (number_functions+1)
         myglobals = {"return_array":return_array, "np":_np}
+        if numba_support:
+            import numba
+            myglobals.update( {"njit":numba.njit} )
         myglobals.update( self.extra_globals )
         try:
             cmd_code = compile( mycode, "networkxarithmetic", "exec" )
@@ -243,17 +255,9 @@ class graphcontainer():
             print( "Produced Code: \n", mycode )
             raise
         exec( cmd_code, myglobals )
+
         if numba_support:
-            print("start compilation")
-            import numba
-            #signum = numba.float32[:]( numba.types.Array(numba.float32, len(self.dataname_list), "A"))
-            #signum = numba.float32[:]( numba.float32[:] )
-            #myjitter = numba.njit( signum )
-            myjitter = numba.njit #(signum) #cant use njit because return of arrays
-                                # is not supported yet
-            self.cyclefunction = myjitter( return_array[0] )
-            #self.cyclefunction = numba.jit( return_array[0], signature=signum, nopython=True )
-            print("end compilation")
+            self.cyclefunction = return_array[-1]
         else:
             self.cyclefunction = return_array[0]
         self.compiled_code = mycode
@@ -263,11 +267,59 @@ dict_valueidentifier_translator = {
         "out":"outnode", "source":"outnode", "inedge":"outnode",
         }
 
-def _combinecode( valuename_ordered, nodetocode_dict, nodelayers, returnindex ):
-    mycode = "def cycle( "
+def _smallfunction_combinecode( valuename_ordered, nodetocode_dict, nodelayers,\
+                                    usedvaluesdict, numba_support=True):
+    mynumber = 2000
+    len_nodelayers = [ len(layer) for layer in nodelayers ]
+    asd = [ sum(len_nodelayers[0:i]) for i in range(len(len_nodelayers))]
+    i=0
+    qwe = []
+    yy = []
+    while i < len(asd):
+        mydiff = asd[i] - mynumber
+        if mydiff>0:
+            yy.append(nodelayers[i][0:mydiff])
+            qwe.append(yy)
+            yy = [ nodelayers[i][mydiff:] ]
+        else:
+            yy.append(nodelayers[i])
+        i=i+1
+    qwe.append( yy )
+    codeoffunctions_list = []
+    #gcode = "".join(("@njit\n","def cycle( ", ",".join(valuename_ordered), "):\n"))
+    gcode = "".join(("def cycle( ", ",".join(valuename_ordered), "):\n"))
+    gcodelist = []
+    for i in range(len(qwe)):
+        usedvalues = set()
+        for layer in nodelayers:
+            for node in layer:
+                usedvalues = usedvalues.union( set(usedvaluesdict[node]) )
+        usedvalues = list(usedvalues)
+        usedvalues.sort( key=valuename_ordered.index )
+        #newcode =  _combinecode( valuename_ordered, nodetocode_dict, \
+        #                                            nodelayers,i )
+        newcode =  _combinecode( usedvalues, nodetocode_dict, \
+                                                    nodelayers, i )
+        codeoffunctions_list.append( "@njit\n" + newcode )
+        gcodelist.append( "\t" + ",".join(usedvalues) +"= cycle%d("%(i) \
+                                + ",".join(usedvalues) +")\n")
+    gcode = "".join( (gcode, *gcodelist, "\treturn "+",".join(valuename_ordered)))
+    gcode = "".join( (gcode, "\nreturn_array[%d] = cycle"%(len(qwe)+1)))
+
+    returncode = "".join((
+                    "".join(codeoffunctions_list),
+                    gcode
+                ))
+    return returncode, len(qwe)+1
+    return "".join(codeoffunctions_list), len(qwe)+1
+
+
+def _combinecode( valuename_ordered, nodetocode_dict, nodelayers,returnindex=0):
+    mycode = "def cycle%d( "%(returnindex)
     for valuename in valuename_ordered:
         mycode = mycode + valuename + ", "
     mycode = mycode + "):\n"
+
     for layer in nodelayers:
         for node in layer:
             try:
@@ -281,11 +333,12 @@ def _combinecode( valuename_ordered, nodetocode_dict, nodelayers, returnindex ):
             mycode = "".join((mycode, "\t", lines, "\n"))
 
     mycode = mycode + "\treturn " + ",".join(valuename_ordered) + ","
-    mycode = mycode + "\nreturn_array[%d] = cycle\n" %( returnindex )
+    mycode = mycode + "\nreturn_array[%d] = cycle%d\n" %(returnindex, returnindex )
     return mycode
 
 def _replace_edgecodesnippet_placeholders( codesnippet, \
-                                    dataname_list, innodename, outnodename, innode, outnode ):
+                                            dataname_list, innodename, \
+                                            outnodename, innode, outnode ):
     """
     translates, the codesnippets given by the functions saved in the edgelibrary
     into usable code by the cyclefunction. this function only uses a array
@@ -295,6 +348,7 @@ def _replace_edgecodesnippet_placeholders( codesnippet, \
     codenodes = codesnippet.nodes(data=True)
     for tmpnode in codenodes:
         tmpdata = tmpnode[1]
+        usedvalues = set()
         for i in range( len(tmpdata["code"]) ):
             values=[]
             valuenames = []
@@ -316,16 +370,21 @@ def _replace_edgecodesnippet_placeholders( codesnippet, \
                             %( innodename, outnodename, tmpdata["code"][i], \
                             values ))
                 raise err
+            usedvalues = usedvalues.union( valuenames )
+        codesnippet.nodes[tmpnode[0]]["usedvalues"] = usedvalues
 
 def _replace_nodecodesnippet_placeholders( codesnippet, \
                                     dataname_list, nodename, node):
     codenodes = codesnippet.nodes(data=True)
     for tmpnode in codenodes:
         tmpdata = tmpnode[1]
+        usedvalues = set()
         for i in range( len(tmpdata["code"]) ):
             valuenames = tuple([tovaluename( node, datakey ) \
                         for datakey in tmpdata["values"][i] ])
             tmpdata["code"][i] = tmpdata["code"][i] % valuenames
+            usedvalues = usedvalues.union( valuenames )
+        codesnippet.nodes[tmpnode[0]]["usedvalues"] = usedvalues
             #values = [ nodename + single \
             #                for single in tmpdata["values"][i]]
             #try:
