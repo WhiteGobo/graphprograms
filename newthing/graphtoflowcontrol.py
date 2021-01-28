@@ -1,5 +1,6 @@
 import copy
 import networkx as netx
+import inspect
 """
 :todo: rename NODEFUNCTIONCONTAINER to NODEOBJECT
     document structure of the graphs
@@ -31,7 +32,9 @@ class cyprogra(): #cycle program from graph
         self.return_graph = copy.deepcopy( graph )
         if set( graph.nodes() ) \
                     != set( netx.get_node_attributes( graph, NODECLASS).keys()):
-            raise Exception( "All nodes must correspond to a dings")
+            raise Exception( "All nodes must have a corresponding class", \
+                            ("nodeattribute to be set is '%s'; see also "\
+                            +"%s.NODECLASS") %(NODECLASS, __name__ ) )
 
         timing_graph = netx.MultiDiGraph()
         generate_all_nodefunctioncontainers_from_graph( graph )
@@ -41,8 +44,10 @@ class cyprogra(): #cycle program from graph
 
         self.cycle_function = compile_code( timing_graph )
 
+
     def cycle( self ):
         self.cycle_function()
+
 
     def return_to_graph( self ):
         return_graph = copy.deepcopy( self.return_graph )
@@ -64,7 +69,17 @@ def add_code_of_edges_to_timing_graph( graph, timing_graph ):
         node2_object = data_of_mothernodes[ node2 ][ NODEFUNCTIONCONTAINER ]
         node2_type = data_of_mothernodes[ node2 ][ NODECLASS ]
 
-        function_identifier = ( node2_type, data[ EDGETYPE ] )
+        try:
+            function_identifier = ( node2_type, data[ EDGETYPE ] )
+        except KeyError as err:
+            err.args = (*err.args, f"for edge {repr(edge[:-1])} information "\
+                    + f"how node {node1} and node {node2} are interacting "\
+                    + f"with one another. please add the edgeattribute "\
+                    + f"'{EDGETYPE}' to the graph. see also "\
+                    + f"{__name__}.EDGETYPE", "edgeattr must align the "\
+                    + f"edgedictionary of nodefunctioncontainer {node1}" )
+            raise err
+
         tmpfunction, after_self, before_self, after_other, before_other \
                     = node1_object.edge_to_dictionary[ function_identifier ]
 
@@ -171,11 +186,22 @@ def generate_all_nodefunctioncontainers_from_graph( graph ):
     nodeid_to_functioncontainer = {}
     for node, data in graph.nodes( data=True ):
         nodegenerator = data[ NODECLASS ]
-        init_varnames = nodegenerator.inputvariables
+        #init_varnames = inspect.getargspec( nodegenerator.__init__ )[0][1:]
+        init_varnames = list( inspect.signature( nodegenerator.__init__ ).parameters)[1:]
+        # throw away the object-reference('self') and default values
+
         init_variables = { varname: data[ varname ] \
-                            for varname in init_varnames}
-        functioncontainer = generate_nodefunctioncontainer( node, \
+                            for varname in data \
+                            if varname in init_varnames }
+        #init_variables = { varname: data[ varname ] \
+        #                    for varname in init_varnames}
+        try:
+            functioncontainer = generate_nodefunctioncontainer( node, \
                                                 nodegenerator, init_variables )
+        except TypeError as err:
+            err.args = (*err.args, "Node: %s, class: %s"%(node, \
+                                    nodegenerator.__name__))
+            raise err
         nodeid_to_functioncontainer.update( { node: functioncontainer } )
 
     netx.set_node_attributes( graph, nodeid_to_functioncontainer, \
@@ -186,12 +212,14 @@ def static_variables( function, functionvariables ):
     """
     makes a function callable with no arguments. makes all the given argument
     s frorm functionvariables static to the given function
+    :todo: default values doesnt need to be set
     """
     # always use class methods. So the argument contains always 'self'
     # hence the argument count must be higher than 1 to need to insert extras
     if function.__code__.co_argcount > 1:
         # filter arguments for arguments for method
-        myvarnames = set( function.__code__.co_varnames ).difference(("self",))
+        #myvarnames = inspect.getargspec( function )[0][1:]
+        myvarnames = list( inspect.signature( function ).parameters)[:]
         try:
             funcvars = { varname: functionvariables[ varname ] \
                             for varname in myvarnames }
@@ -208,7 +236,12 @@ def static_variables( function, functionvariables ):
         return function
 
 def generate_nodefunctioncontainer( nodeid, nodegenerator, init_variables ):
-    mycontainer = nodegenerator( **init_variables )
+    try:
+        mycontainer = nodegenerator( **init_variables )
+    except TypeError as err:
+        err.args = ( *err.args, "all required arguments for class init must be"\
+                + " as given as node attribute" )
+        raise err
     return mycontainer
 
 class nodefunctioncontainer():
