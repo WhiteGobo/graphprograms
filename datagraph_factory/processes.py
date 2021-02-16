@@ -14,8 +14,9 @@ datanode_output_to_process = {}
 possible_edges_between_types = {}
 
 class conclusion_leaf():
-    prestatus = None
-    poststatus = None
+    def __init__( self, prestatus, poststatus ):
+        self.prestatus = prestatus
+        self.poststatus = poststatus
 
 
 def pass_function():

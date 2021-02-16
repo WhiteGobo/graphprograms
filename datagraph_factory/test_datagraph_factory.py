@@ -103,17 +103,19 @@ class property_ispositive( edgetype ):
     nodetype_source = threetuple
     nodetype_target = ispositive
 
-class conclusion_sumisnegative_so_is_tuple( conclusion_leaf ):
-    tmp = datagraph()
-    tmp.add_node( "tuple", threetuple )
-    tmp.add_node( "sum", tuplesum )
-    tmp.add_edge( "tuple", "sum", property_tuplesum )
-    tmp.add_node( "isneg", isnegative )
-    tmp.add_edge( "sum", "isneg", property_isnegative )
-    prestatus = tmp.copy()
-    tmp.add_edge( "tuple", "isneg", property_isnegative )
-    poststatus = tmp.copy()
-    del( tmp )
+tmp = datagraph()
+tmp.add_node( "tuple", threetuple )
+tmp.add_node( "sum", tuplesum )
+tmp.add_edge( "tuple", "sum", property_tuplesum )
+tmp.add_node( "isneg", isnegative )
+tmp.add_edge( "sum", "isneg", property_isnegative )
+prestatus = tmp.copy()
+tmp.add_edge( "tuple", "isneg", property_isnegative )
+poststatus = tmp.copy()
+del( tmp )
+conclusion_sumisnegative_so_is_tuple = conclusion_leaf( prestatus, poststatus )
+del( prestatus, poststatus )
+
 
 
 
