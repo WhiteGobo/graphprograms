@@ -69,8 +69,8 @@ class test_graph( unittest.TestCase ):
         #asd_with_conclusionleaf = myfoo( myinput = threetuple(a,b,c) )
         #print( asd_with_conclusionleaf )
 
-        from .visualizer import visualize_flowgraph
-        visualize_flowgraph( flowgraph_with_conclusion )
+        #from .visualizer import visualize_flowgraph
+        #visualize_flowgraph( flowgraph_with_conclusion )
 
 
 
