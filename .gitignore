@@ -4,4 +4,5 @@ build/
 __pycache__/
 graphtoarithmetic/__pycache__/
 networkxarithmetic/__pycache__/
+newthing/__pycache__/
 *.pyc

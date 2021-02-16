@@ -164,6 +164,7 @@ def DiGraph_to_layers( mydigraph ):
 def add_code_of_functioncontainers_to_timing_graph( graph, timing_graph ):
     for node, data in graph.nodes( data=True ):
         tiny_timing = data[ NODEFUNCTIONCONTAINER ].get_timing_graph()
+        tiny_timing = netx.MultiDiGraph( tiny_timing )
         netx.set_node_attributes( tiny_timing, \
                                     { n:node for n in tiny_timing.nodes() }, \
                                     MOTHERNODE )
@@ -171,7 +172,6 @@ def add_code_of_functioncontainers_to_timing_graph( graph, timing_graph ):
                                     { n:n for n in tiny_timing.nodes() }, \
                                     TIMINGSUBLABEL )
 
-        tiny_timing = netx.MultiDiGraph( tiny_timing )
         timing_graph = netx.disjoint_union( timing_graph, tiny_timing )
 
     #save the timing nodes in original graph for finding purposes, see edges
@@ -187,7 +187,8 @@ def generate_all_nodefunctioncontainers_from_graph( graph ):
     for node, data in graph.nodes( data=True ):
         nodegenerator = data[ NODECLASS ]
         #init_varnames = inspect.getargspec( nodegenerator.__init__ )[0][1:]
-        init_varnames = list( inspect.signature( nodegenerator.__init__ ).parameters)[1:]
+        init_varnames = list( inspect.signature( nodegenerator.__init__ )\
+                                                        .parameters)[1:]
         # throw away the object-reference('self') and default values
 
         init_variables = { varname: data[ varname ] \
