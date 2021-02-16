@@ -386,25 +386,7 @@ def translate_factoryleaf_to_datastateeffect( datatype_to_node, \
     for factleaf in factoryleaflist:
         all_nodes, factleaf_node_to_datatype \
                         =  _extract_info_from_factleaf( factleaf )
-
-        possiblenodeslist_list = []
-        all_nodes = list( all_nodes )
-        for node in all_nodes:
-            possible_nodes_for_singletype \
-                    = datatype_to_node[ factleaf_node_to_datatype[ node ] ]
-            possiblenodeslist_list.append(  possible_nodes_for_singletype  )
-
-        equivnodeslists = itertools.product( *possiblenodeslist_list )
-        equivalent_nodelist_to_in_out_graph \
-                            = [ trans for trans in equivnodeslists \
-                                if max(Counter(trans).values()) == 1 ]
-        del( equivnodeslists )
-
-        possible_translations = [ list(itertools.zip_longest( all_nodes, trans))
-                            for trans in equivalent_nodelist_to_in_out_graph ]
-        possible_translations = [ { oldnode: newnode \
-                                for oldnode, newnode in singletrans }
-                                for singletrans in possible_translations ]
+        possible_translations = create_possible_translation_of_nodelist( all_nodes, factleaf_node_to_datatype, datatype_to_node )
         # possible_translations is now a list of dictionaries
         # every dictionary projects the nodes of the factleaf_graphs unto 
         # the node_collections 'datatype_to_node'
@@ -421,6 +403,27 @@ def translate_factoryleaf_to_datastateeffect( datatype_to_node, \
             del( tmpprocess )
     return processlist
 
+def create_possible_translation_of_nodelist( inputnodelist, \
+                                inputnode_to_datatype, datatype_to_outnode ):
+    possiblenodeslist_list = []
+    all_nodes = list( inputnodelist )
+    for node in all_nodes:
+        possible_nodes_for_singletype \
+                = datatype_to_outnode[ inputnode_to_datatype[ node ] ]
+        possiblenodeslist_list.append(  possible_nodes_for_singletype  )
+
+    equivnodeslists = itertools.product( *possiblenodeslist_list )
+    equivalent_nodelist_to_in_out_graph \
+                        = [ trans for trans in equivnodeslists \
+                            if max(Counter(trans).values()) == 1 ]
+    del( equivnodeslists )
+
+    possible_translations = [ list(itertools.zip_longest( all_nodes, trans))
+                        for trans in equivalent_nodelist_to_in_out_graph ]
+    possible_translations = [ { oldnode: newnode \
+                            for oldnode, newnode in singletrans }
+                            for singletrans in possible_translations ]
+    return possible_translations
 
 def translate_conclusion_leaf( datatype_to_node, node_to_datatype, \
                                         conclusionleaf_list ):
