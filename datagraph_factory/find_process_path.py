@@ -151,7 +151,8 @@ class conclusion_process():
         return tmpgraph
 
 
-def datastate_from_graph( motherflowgraph, node_to_datatype, mydatagraph ):
+def datastate_from_graph( motherflowgraph, mydatagraph ):
+    node_to_datatype = motherflowgraph.node_to_datatype
     nodes, edges = _transform_datagraph_to_nodes_edges( mydatagraph )
     return datastate( motherflowgraph, nodes, edges )
 
@@ -247,7 +248,7 @@ class flowgraph( netx.MultiDiGraph ):
     def set_startgraphs( self, startprocesslist ):
         tmpset = set()
         for tmpprocess in startprocesslist:
-            nextnode = datastate_from_graph( self, self.node_to_datatype, \
+            nextnode = datastate_from_graph( self, \
                                        tmpprocess.inputgraph)
             self.add_node( nextnode )
             tmpset.add( nextnode )
