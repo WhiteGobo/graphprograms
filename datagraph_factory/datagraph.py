@@ -72,26 +72,9 @@ class datatype():
     """ This is the base class """
     pass
 
+
 class edgetype():
-    nodetype_source = None
-    nodetype_target = None
-    def __init__( self, name, doc=str()):
-        #if not ( isinstance( nodetype_source, datatype ) \
-        #        and isinstance( nodetype_target, datatype ) ):
-        #    raise Exception()
-        self.name = str( name )
-        self.doc = str( doc )
-
-        self._register()
-
-    def _register( self ):
-        global edgetype_name
-        global edgetype_vec
-        global edgetype
-        q = edgetype_name.setdefault( self.name, list() )
-        q.append( self )
-
-        q = edgetype_vec.setdefault( self.name, list() )
-        q.append( self )
-
-        edgetype.append( self )
+    def __init__( self, source, target, doc ):
+        self.source = source
+        self.target = target
+        self.__doc__ = doc

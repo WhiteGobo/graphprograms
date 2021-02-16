@@ -63,6 +63,9 @@ class test_graph( unittest.TestCase ):
         flowgraph_with_conclusion = create_flowgraph_for_datanodes( \
                                         (sumup, check_isnegative), \
                                         (conclusion_sumisnegative_so_is_tuple,))
+        for m in flowgraph_with_conclusion.node_to_datatype.items():
+            print( f"{m[0]}: {m[1]}" )
+        print( flowgraph_with_conclusion.edges() )
         #asd_with_conclusionleaf = create_linear_function( \
         #                    flowgraph_with_conclusion, \
         #                    inputgraph, outputgraph_with_edge, verbosity =1 )
@@ -85,23 +88,22 @@ class tuplesum( datatype ):
     def __init__( self, val ):
         self.val = val
 
+class property_valuesign( datatype ):
+    pass
+
 class isnegative( datatype ):
     pass
 
 class ispositive( datatype ):
     pass
 
-class property_tuplesum( edgetype ):
-    nodetype_source = threetuple
-    nodetype_target = tuplesum
+property_tuplesum = edgetype( threetuple, tuplesum, "" )
 
-class property_isnegative( edgetype ):
-    nodetype_source = threetuple
-    nodetype_target = isnegative
+property_isnegative = edgetype( threetuple, property_valuesign, "" )
 
-class property_ispositive( edgetype ):
-    nodetype_source = threetuple
-    nodetype_target = ispositive
+property_ispositive = edgetype( threetuple, property_valuesign, "" )
+
+property_tata = edgetype( threetuple, property_valuesign, "" )
 
 tmp = datagraph()
 tmp.add_node( "tuple", threetuple )
