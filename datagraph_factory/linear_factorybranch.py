@@ -30,9 +30,9 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
                         +"create_linear_function( ..., verbosity = 1 )")
         raise err
     
-    current_datastate = datastate_from_graph( node_to_datatype, \
+    current_datastate = datastate_from_graph( flowgraph, node_to_datatype, \
                                     netx.relabel_nodes(inputgraph, translator))
-    target_datastate = datastate_from_graph( node_to_datatype, \
+    target_datastate = datastate_from_graph( flowgraph, node_to_datatype, \
                                     netx.relabel_nodes(outputgraph, translator))
 
     flowcontroller = linearflowcontroller( flowgraph, target_datastate )

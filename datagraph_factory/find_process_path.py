@@ -151,9 +151,9 @@ class conclusion_process():
         return tmpgraph
 
 
-def datastate_from_graph( node_to_datatype, mydatagraph ):
+def datastate_from_graph( motherflowgraph, node_to_datatype, mydatagraph ):
     nodes, edges = _transform_datagraph_to_nodes_edges( mydatagraph )
-    return datastate( node_to_datatype, nodes, edges )
+    return datastate( motherflowgraph, nodes, edges )
 
 
 def _transform_datagraph_to_nodes_edges( mydatagraph ):
@@ -165,9 +165,14 @@ def _transform_datagraph_to_nodes_edges( mydatagraph ):
     return nodes, edges
 
 class datastate():
-    def __init__( self, node_to_datatype, nodes, edges ):
-        self.node_to_datatype = node_to_datatype
+    def __init__( self, mother_flowgraph, nodes, edges ):
+        self._flowgraph = mother_flowgraph
         self.nodes, self.edges = frozenset( nodes ), frozenset( edges )
+
+    def _get_node_to_datatype( self ):
+        return self._flowgraph.node_to_datatype
+
+    node_to_datatype = property( fget = _get_node_to_datatype )
 
     def __repr__( self ):
         return f"data({tuple(self.nodes)}, {tuple(self.edges)})"
@@ -177,7 +182,7 @@ class datastate():
             for node_add, edge_add in myprocess.additions:
                 tmpnode = self.nodes.union( node_add )
                 tmpedge = self.edges.union( edge_add )
-                yield( datastate( self.node_to_datatype, tmpnode, tmpedge ) )
+                yield( datastate( self._flowgraph, tmpnode, tmpedge ) )
 
     def __hash__( self ):
         return ( self.nodes, self.edges ).__hash__()
@@ -237,12 +242,12 @@ class flowgraph( netx.MultiDiGraph ):
         nodes, edges = _transform_datagraph_to_nodes_edges( \
                                                     self.nodedatatypelist, \
                                                     relabeled_datagraph )
-        return datastate( self.nodedatatypelist, nodes, edges )
+        return datastate( self, nodes, edges )
 
     def set_startgraphs( self, startprocesslist ):
         tmpset = set()
         for tmpprocess in startprocesslist:
-            nextnode = datastate_from_graph( self.node_to_datatype, \
+            nextnode = datastate_from_graph( self, self.node_to_datatype, \
                                        tmpprocess.inputgraph)
             self.add_node( nextnode )
             tmpset.add( nextnode )
