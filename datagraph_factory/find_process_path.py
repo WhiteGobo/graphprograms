@@ -17,7 +17,8 @@ def create_flowgraph_for_datanodes( factoryleaf_list, conclusionleaf_list=[]):
 
     conclusionlist = translate_conclusion_leaf( datatype_to_node,\
                                         node_to_datatype, conclusionleaf_list )
-    all_processes = translate_factoryleaf_to_process( datatype_to_node, \
+    all_processes = translate_factoryleaf_to_datastateeffect( \
+                                        datatype_to_node,\
                                         factoryleaf_list, node_to_datatype, \
                                         conclusionlist )
 
@@ -25,6 +26,13 @@ def create_flowgraph_for_datanodes( factoryleaf_list, conclusionleaf_list=[]):
     visible_datagraphs.set_startgraphs( all_processes )
     visible_datagraphs.extend_visible_datagraphs_fully( all_processes )
     return visible_datagraphs
+
+class factoryleaf_effect():
+    def __init__( self, factoryleaf, inputdatastate, outputdatastate ):
+        self.factoryleaf = factoryleaf
+        self.inputdatastate = inputdatastate
+        self.outputdatastate = outputdatastate
+
 
 class process():
     def __init__( self, inputgraph, outputgraph, datatype_to_node, \
@@ -364,7 +372,8 @@ class flowgraph( netx.MultiDiGraph ):
 
 
 
-def translate_factoryleaf_to_process( datatype_to_node, factoryleaflist, \
+def translate_factoryleaf_to_datastateeffect( datatype_to_node, \
+                                            factoryleaflist, \
                                             node_to_datatype, conclusionlist ):
     """
     :type my_factory_leaf: .classes.factory_leaf
@@ -399,7 +408,6 @@ def translate_factoryleaf_to_process( datatype_to_node, factoryleaflist, \
         # possible_translations is now a list of dictionaries
         # every dictionary projects the nodes of the factleaf_graphs unto 
         # the node_collections 'datatype_to_node'
-
 
         for singletrans in possible_translations:
             tmpingraph = netx.relabel_nodes( factleaf.prestatus, singletrans )
@@ -465,8 +473,8 @@ def _extract_info_from_factleaf( factleaf ):
     #inputnodes = set( inputgraph.nodes() )
     all_nodes = set( inputgraph.nodes() )\
                         .union( outputgraph.nodes() )
-    datatype_dict = netx.get_node_attributes( inputgraph, "datatype" )
-    datatype_dict.update( netx.get_node_attributes( outputgraph, "datatype"))
+    datatype_dict = netx.get_node_attributes( inputgraph, DATATYPE )
+    datatype_dict.update( netx.get_node_attributes( outputgraph, DATATYPE))
     return all_nodes, datatype_dict
 
 
