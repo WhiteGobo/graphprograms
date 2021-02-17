@@ -15,8 +15,13 @@ possible_edges_between_types = {}
 
 class conclusion_leaf():
     def __init__( self, prestatus, poststatus ):
+        if set( prestatus.nodes() ) != set( poststatus.nodes() ):
+            raise KeyError( "conclusions only works to add single edges",
+                            "prestatus.nodes: {set(prestatus.nodes())}", \
+                            "poststatus.nodes: {set(poststatus.nodes())}")
         self.prestatus = prestatus
         self.poststatus = poststatus
+
 
 
 def pass_function():

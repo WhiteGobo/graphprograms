@@ -28,6 +28,26 @@ def create_flowgraph_for_datanodes( factoryleaf_list, conclusionleaf_list=[]):
     visible_datagraphs.extend_visible_datagraphs_fully( all_processes )
     return visible_datagraphs
 
+class conclusionleaf_effect():
+    def __init__( self, mother_flowgraph, myconclusionleaf, \
+                                        translation_of_nodes ):
+        self.conclusionleaf = myconclusionleaf
+        self.trans = translation_of_nodes
+        self.mother_flowgraph = mother_flowgraph
+        trans = translation_of_nodes
+        inputgraph = myconclusionleaf.prestatus
+        tmpnodes = [ trans[ node ] for node in inputgraph.nodes() ]
+        tmpedges = [ ( trans[e[0]], trans[e[1]], e[-1][EDGETYPE] ) \
+                        for e in inputgraph.edges( data=True ) ]
+        self.inputdatastate = datastate( mother_flowgraph, tmpnodes, tmpedges )
+
+        outputgraph = myconclusionleaf.poststatus
+        tmpnodes = [ trans[ node ] for node in outputgraph.nodes() ]
+        tmpedges = [ ( trans[e[0]], trans[e[1]], e[-1][EDGETYPE] ) \
+                        for e in outputgraph.edges( data=True ) ]
+        self.outputdatastate = datastate( mother_flowgraph, tmpnodes, tmpedges )
+
+        self._created_edge_functions = dict()
 
 class factoryleaf_effect():
     def __init__( self, mother_flowgraph, factoryleaf, translation_of_nodes ):
@@ -414,39 +434,14 @@ def translate_conclusion_leaf( datatype_to_node, node_to_datatype, \
     for conclusion in conclusionleaf_list:
         all_nodes, factleaf_node_to_datatype \
                         =  _extract_info_from_factleaf( conclusion )
-        possiblenodeslist_list = []
-        all_nodes = list( all_nodes )
-        for node in all_nodes:
-            possible_nodes_for_singletype \
-                    = datatype_to_node[ factleaf_node_to_datatype[ node ] ]
-            possiblenodeslist_list.append(  possible_nodes_for_singletype  )
-
-        equivnodeslists = itertools.product( *possiblenodeslist_list )
-        equivalent_nodelist_to_in_out_graph \
-                            = [ trans for trans in equivnodeslists \
-                                if max(Counter(trans).values()) == 1 ]
-        del( equivnodeslists )
-
-        possible_translations = [ list(itertools.zip_longest( all_nodes, trans))
-                            for trans in equivalent_nodelist_to_in_out_graph ]
-        possible_translations = [ { oldnode: newnode \
-                                for oldnode, newnode in singletrans }
-                                for singletrans in possible_translations ]
-        # possible_translations is now a list of dictionaries
-        # every dictionary projects the nodes of the factleaf_graphs unto 
-        # the node_collections 'datatype_to_node'
-
-
+        possible_translations = create_possible_translation_of_nodelist( \
+                                        all_nodes, factleaf_node_to_datatype, \
+                                        datatype_to_node )
         for singletrans in possible_translations:
-            tmpingraph = netx.relabel_nodes( conclusion.prestatus, singletrans )
-            tmpoutgraph = netx.relabel_nodes( conclusion.poststatus,singletrans)
-
-            conclusion_for_process = conclusion_process( \
-                                            tmpingraph, tmpoutgraph, \
-                                            datatype_to_node, conclusion, \
-                                            node_to_datatype, singletrans )
-
-            translated_conclusionlist.append( conclusion_for_process )
+            bubu = conclusionleaf_effect( givenflowgraph, conclusion, \
+                                            singletrans)
+            if False:
+                yield 0
 
 
 def _extract_info_from_factleaf( factleaf ):

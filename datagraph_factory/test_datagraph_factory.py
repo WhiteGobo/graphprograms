@@ -19,11 +19,8 @@ class test_graph( unittest.TestCase ):
         #use:
         #tuplesum, isnegative, threetuple, property_tuplesum, 
         #property_isnegative, sumup
+
         flowgraph = create_flowgraph_for_datanodes( (sumup, check_isnegative) )
-        #for a in flowgraph.nodes( data=True ):
-        #    print( a )
-        #for e in flowgraph.edges( data=True ):
-        #    print( e )
 
         tmpgraph = datagraph()
         tmpgraph.add_node( "myinput", threetuple )
@@ -64,11 +61,23 @@ class test_graph( unittest.TestCase ):
                         " a solution to given problem")
             raise err
 
+
+    def test_datagraph_factory_with_conclusionlist( self ):
+        #tmpgraph = datagraph()
+        #tmpgraph.add_node( "myinput", threetuple )
+        #inputgraph = tmpgraph.copy()
+        #tmpgraph.add_node( "targetprop_negative", isnegative )
+        #outputgraph = tmpgraph.copy()
+        #tmpgraph.add_edge( "myinput", "targetprop_negative", \
+        #                    property_isnegative )
+        #outputgraph_with_edge = tmpgraph.copy()
+        #del( tmpgraph )
+
         flowgraph_with_conclusion = create_flowgraph_for_datanodes( \
                                         (sumup, check_isnegative), \
                                         (conclusion_sumisnegative_so_is_tuple,))
-        #for m in flowgraph_with_conclusion.node_to_datatype.items():
-        #    print( f"{m[0]}: {m[1]}" )
+        for m in flowgraph_with_conclusion.node_to_datatype.items():
+            print( f"{m[0]}: {m[1]}" )
         #print( flowgraph_with_conclusion.edges() )
         #asd_with_conclusionleaf = create_linear_function( \
         #                    flowgraph_with_conclusion, \
