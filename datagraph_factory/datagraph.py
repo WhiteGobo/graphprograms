@@ -20,6 +20,7 @@ class datagraph( netx.MultiDiGraph ):
             else:
                 super().add_edge( firstnode, secondnode )
         else:
+            raise Exception( "this doesnt function" )
             super().add_edge( firstnode )
 
     def copy( self ):
@@ -37,8 +38,8 @@ class datagraph( netx.MultiDiGraph ):
             return
 
     def test_valid( self ):
-        chk1 = self.nodes() == netx.get_node_attributes( self, DATATYPE ).keys()
-        chk2 = self.edges() == netx.get_edge_attributes( self, EDGETYPE ).keys()
+        chk1 = set(self.nodes()) == netx.get_node_attributes( self, DATATYPE ).keys()
+        chk2 = set(self.edges(keys=True)) == netx.get_edge_attributes( self, EDGETYPE ).keys()
         return chk1 and chk2
 
     def raise_exception_if_not_valid( self ):
@@ -74,7 +75,11 @@ class datatype():
 
 
 class edgetype():
-    def __init__( self, source, target, doc ):
+    def __init__( self, source, target, name, doc ):
         self.source = source
         self.target = target
         self.__doc__ = doc
+        self.__name__ = name
+
+    def __repr__( self ):
+        return self.__name__

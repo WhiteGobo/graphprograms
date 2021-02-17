@@ -20,14 +20,18 @@ class test_graph( unittest.TestCase ):
         #tuplesum, isnegative, threetuple, property_tuplesum, 
         #property_isnegative, sumup
         flowgraph = create_flowgraph_for_datanodes( (sumup, check_isnegative) )
+        #for a in flowgraph.nodes( data=True ):
+        #    print( a )
+        #for e in flowgraph.edges( data=True ):
+        #    print( e )
 
         tmpgraph = datagraph()
-        tmpgraph.add_node( "myinput", **{DATATYPE: threetuple} )
+        tmpgraph.add_node( "myinput", threetuple )
         inputgraph = tmpgraph.copy()
-        tmpgraph.add_node( "targetprop_negative", **{DATATYPE: isnegative} )
+        tmpgraph.add_node( "targetprop_negative", isnegative )
         outputgraph = tmpgraph.copy()
         tmpgraph.add_edge( "myinput", "targetprop_negative", \
-                            **{ EDGETYPE: property_isnegative } )
+                            property_isnegative )
         outputgraph_with_edge = tmpgraph.copy()
         del( tmpgraph )
 
@@ -63,9 +67,9 @@ class test_graph( unittest.TestCase ):
         flowgraph_with_conclusion = create_flowgraph_for_datanodes( \
                                         (sumup, check_isnegative), \
                                         (conclusion_sumisnegative_so_is_tuple,))
-        for m in flowgraph_with_conclusion.node_to_datatype.items():
-            print( f"{m[0]}: {m[1]}" )
-        print( flowgraph_with_conclusion.edges() )
+        #for m in flowgraph_with_conclusion.node_to_datatype.items():
+        #    print( f"{m[0]}: {m[1]}" )
+        #print( flowgraph_with_conclusion.edges() )
         #asd_with_conclusionleaf = create_linear_function( \
         #                    flowgraph_with_conclusion, \
         #                    inputgraph, outputgraph_with_edge, verbosity =1 )
@@ -97,13 +101,13 @@ class isnegative( datatype ):
 class ispositive( datatype ):
     pass
 
-property_tuplesum = edgetype( threetuple, tuplesum, "" )
+property_tuplesum = edgetype( threetuple, tuplesum, "property_tuplesum", "" )
 
-property_isnegative = edgetype( threetuple, property_valuesign, "" )
+property_isnegative = edgetype( threetuple, property_valuesign, "property_isnegative", "" )
 
-property_ispositive = edgetype( threetuple, property_valuesign, "" )
+property_ispositive = edgetype( threetuple, property_valuesign, "property_ispositive", "" )
 
-property_tata = edgetype( threetuple, property_valuesign, "" )
+property_tata = edgetype( threetuple, property_valuesign, "property_tata", "" )
 
 tmp = datagraph()
 tmp.add_node( "tuple", threetuple )

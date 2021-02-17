@@ -35,6 +35,8 @@ class factory_leaf():
         #                        +"call_function has as arguments",\
         #                        f"prestatus: {prestatus.nodes()}; " \
         #                        +f"call: {call_args}" )
+        if not (prestatus.test_valid() and poststatus.test_valid() ):
+            raise Exception( prestatus.test_valid(), poststatus.test_valid() )
         self.prestatus = prestatus
         self.poststatus = poststatus
         self.call_function = call_function

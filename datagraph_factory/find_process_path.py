@@ -17,119 +17,114 @@ def create_flowgraph_for_datanodes( factoryleaf_list, conclusionleaf_list=[]):
 
     conclusionlist = translate_conclusion_leaf( datatype_to_node,\
                                         node_to_datatype, conclusionleaf_list )
-    all_processes = translate_factoryleaf_to_datastateeffect( \
-                                        datatype_to_node,\
-                                        factoryleaf_list, node_to_datatype, \
-                                        conclusionlist )
 
     visible_datagraphs = flowgraph( node_to_datatype )
-    visible_datagraphs.set_startgraphs( all_processes )
+    all_processes = list( translate_factoryleaf_to_datastateeffect( 
+                                        visible_datagraphs, datatype_to_node,\
+                                        factoryleaf_list, node_to_datatype, \
+                                        conclusionlist ) )
+    startdatastates = [ proc.inputdatastate for proc in all_processes ]
+    visible_datagraphs.set_startgraphs( startdatastates )
     visible_datagraphs.extend_visible_datagraphs_fully( all_processes )
     return visible_datagraphs
 
+
 class factoryleaf_effect():
-    def __init__( self, factoryleaf, inputdatastate, outputdatastate ):
+    def __init__( self, mother_flowgraph, factoryleaf, translation_of_nodes ):
         self.factoryleaf = factoryleaf
-        self.inputdatastate = inputdatastate
-        self.outputdatastate = outputdatastate
+        self.trans = translation_of_nodes
+        self.mother_flowgraph = mother_flowgraph
+        trans = translation_of_nodes
+
+        inputgraph = factoryleaf.prestatus
+        tmpnodes = [ trans[ node ] for node in inputgraph.nodes() ]
+        tmpedges = [ ( trans[e[0]], trans[e[1]], e[-1][EDGETYPE] ) \
+                        for e in inputgraph.edges( data=True ) ]
+        self.inputdatastate = datastate( mother_flowgraph, tmpnodes, tmpedges )
+
+        outputgraph = factoryleaf.poststatus
+        tmpnodes = [ trans[ node ] for node in outputgraph.nodes() ]
+        tmpedges = [ ( trans[e[0]], trans[e[1]], e[-1][EDGETYPE] ) \
+                        for e in outputgraph.edges( data=True ) ]
+        self.outputdatastate = datastate( mother_flowgraph, tmpnodes, tmpedges )
+
+        self._created_edge_functions = dict()
+
+    def _get_antitrans( self ):
+        return { value: key for key, value in self.trans.items() }
+    antitrans = property( fget = _get_antitrans )
+
+    def addition_nodes( self ):
+        new = self.outputdatastate.nodes
+        old = self.inputdatastate.nodes
+        return new.difference( old )
+
+    def remove_nodes( self ):
+        new = self.outputdatastate.nodes
+        old = self.inputdatastate.nodes
+        return old.difference( new )
+
+    def additional_edges_with_addnodes( self, nodeset ):
+        out_edges = self.outputdatastate.edges
+        return [ edge for edge in out_edges \
+                        if (edge[1] in nodeset and edge[0] not in nodeset ) \
+                        or (edge[0] in nodeset and edge[1] not in nodeset ) ]
+
+    def extend_datanode( self, superdatastate ):
+        if self.inputdatastate.issubset_to( superdatastate ):
+            my_add = self.addition_nodes()
+            if not superdatastate.nodes.intersection( my_add ):
+                powerset_addnodes = _custom_powerset( my_add )
+                for addnodes in powerset_addnodes:
+                    addedges = self.additional_edges_with_addnodes( addnodes )
+                    tmpnodes = superdatastate.nodes.union( addnodes )
+                    tmpedges = superdatastate.edges.union( addedges )
+                    yield datastate( superdatastate._flowgraph, \
+                                        tmpnodes, tmpedges )
+
+    def get_edge_function( self, input_datastate ):
+        if input_datastate in self._created_edge_functions:
+            return self._created_edge_functions[ input_datastate ]
+        else:
+            new_edge_function = self._create_new_edge_function( input_datastate)
+            self._created_edge_functions[ input_datastate ] = new_edge_function
+            return new_edge_function
+
+    def _create_new_edge_function( self, input_datastate ):
+        possible_outputstate = {}
+        my_add = self.addition_nodes()
+        powerset_addnodes = _custom_powerset( my_add )
+        for addnodes in powerset_addnodes:
+            addedges = self.additional_edges_with_addnodes( addnodes )
+            tmpnodes = input_datastate.nodes.union( addnodes )
+            tmpedges = input_datastate.edges.union( addedges )
+            addnodes_factleaf = ( self.antitrans[ node ] for node in addnodes)
+            possible_outputstate[ frozenset( addnodes_factleaf ) ] \
+                    = datastate( input_datastate._flowgraph, tmpnodes, tmpedges)
+
+        transition_function = self.factoryleaf.call_function
+
+        mytrans = self.trans
+        myantitrans = self.antitrans
+        mother_flowgraph = self.mother_flowgraph
+        inputdatatrans = tuple( (factkey, key) \
+                            for factkey, key in mytrans.items() \
+                            if key in input_datastate.nodes )
+        def edge_transition_function():
+            foo_input = { factkey: mother_flowgraph.data[key] \
+                            for factkey, key in inputdatatrans }
+
+            foo_output = transition_function( **foo_input )
+            for factkey, single_output in foo_output.items():
+                mother_flowgraph.data[ mytrans[ factkey ] ] = single_output
+
+            a = mother_flowgraph.datastate
+            mother_flowgraph.datastate = possible_outputstate[ \
+                                            frozenset(foo_output.keys()) ]
+
+        return edge_transition_function
 
 
-class process():
-    def __init__( self, inputgraph, outputgraph, datatype_to_node, \
-                            motherleaf, node_to_datatype, \
-                            factleaf_to_process_translator, \
-                            extra_conclusions, cost=1.0 ):
-        self.inputgraph = self._duplicate_and_filter_graph( inputgraph, None )
-        self.outputgraph = self._duplicate_and_filter_graph( outputgraph, \
-                                                        extra_conclusions )
-        self.extra_conclusions = extra_conclusions
-        self.motherleaf = motherleaf
-        self.node_to_datatype = node_to_datatype 
-        self.datatype_to_node = datatype_to_node
-        self.cost = cost
-        self.antitrans = factleaf_to_process_translator
-
-        self.add_edges = self._create_add_edges( outputgraph, inputgraph )
-
-        self.delete_nodes = set( self.inputgraph.nodes() )\
-                                        .difference( self.outputgraph.nodes() )
-        self.exclusion_criterion = set( self.outputgraph.nodes() )\
-                                        .difference( self.inputgraph.nodes() )
-
-    def _create_add_edges( self, outgraph, ingraph ):
-        add_edges = set( outgraph.edges( keys=True ) )\
-                            .difference( ingraph.edges( keys=True ) )
-        edgetypes = netx.get_edge_attributes( outgraph, EDGETYPE )
-        return [ (edge[0],edge[1],edgetypes[ edge ]) for edge in add_edges ]
-
-    def _duplicate_and_filter_graph( self, graph, extra_conclusions ):
-        tmpgraph = netx.MultiDiGraph()
-        tmpgraph.add_nodes_from( graph.nodes() )
-        tmpgraph.add_edges_from( graph.edges( data=True ) )
-
-        if extra_conclusions:
-            for a in extra_conclusions:
-                a.add_extra_edge_through_conclusion( a, tmpgraph )
-
-        return tmpgraph
-
-    def __call__( self, **args ):
-        """
-        :todo: get rid of object_generation 'self.motherleaf()'
-        """
-        trans = self.translation
-        antitrans = self.antitrans
-        args = { trans[key]: args[ key ] for key in self.inputgraph.nodes()}
-        #args = { trans[key]: value for key, value in args.items() }
-        returnval = self.motherleaf( **args )
-        try:
-            filtered_return = { antitrans[key]: value \
-                                for key, value in returnval.items() }
-        except AttributeError as err:
-            err.args = (*err.args, f"factory_leaf {self.motherleaf} "\
-                                    +"returned not a dictionary")
-            raise err
-
-        return filtered_return
-
-
-    def _get_translation_process_to_factleaf( self ):
-        return { value:key for key, value in self.antitrans.items() }
-
-    translation = property( fget=_get_translation_process_to_factleaf )
-
-    def _get_additional_nodes_and_edges_through_process( self ):
-        tmpsets = _custom_powerset( self.exclusion_criterion )
-        tmpsets = [ set( self.inputgraph.nodes() ).union( single )\
-                        for single in tmpsets ]
-        newgraphs = [ self.outputgraph.subgraph( nodeset ) \
-                        for nodeset in tmpsets ]
-        newedges = [ set( tmpG.edges( keys=True ) )\
-                        .difference( self.inputgraph.edges( keys=True ) )\
-                        for tmpG in newgraphs ]
-        edgetype = netx.get_edge_attributes( self.outputgraph, EDGETYPE )
-        newedges = [ set(( e[0],e[1],edgetype[e] ) for e in tmplist ) \
-                    for tmplist in newedges ]
-        newnodes = [ set( tmpG.nodes() ).difference( self.inputgraph.nodes() )\
-                        for tmpG in newgraphs ]
-        return list( itertools.zip_longest( newnodes, newedges ) )
-
-
-    additions = property(fget =_get_additional_nodes_and_edges_through_process )
-
-    def valid_for_nodelist( self, nodeedgelist ):
-        """
-        :todo: use a datastate instead of a datagraph
-        """
-        nodelist = nodeedgelist[0]
-        edgelist = nodeedgelist[1]
-        condition1 = not any( [ node in nodelist \
-                            for node in self.exclusion_criterion ] )
-        condition2 = all( [ node in nodelist \
-                            for node in self.inputgraph.nodes() ] )
-        condition3 = all( [ (edge[0],edge[1],edge[-1][EDGETYPE]) in edgelist \
-                            for edge in self.inputgraph.edges(data=True) ] )
-        return all( ( condition1, condition2, condition3 ) )
 
 class conclusion_process():
     def __init__( self, inputgraph, outputgraph, datatype_to_node, \
@@ -216,12 +211,11 @@ class flowgraph( netx.MultiDiGraph ):
                             see Object.nodes()
     :param set_startgraphs: Mmmhhh
     """
-    def __init__( self, node_to_datatype, startprocesslist = None ):
+    def __init__( self, node_to_datatype ):
         super().__init__()
         self.newestdatagraphs = set()
         self.node_to_datatype = node_to_datatype
-        if startprocesslist:
-            self.set_startgraphs( startprocesslist )
+
 
     def _reverse_node_to_datatype( self ):
         tmpdictionary = {}
@@ -230,8 +224,8 @@ class flowgraph( netx.MultiDiGraph ):
             tmplist.append( nodeid )
             del( tmplist )
         return tmpdictionary
-
     datatype_to_nodelist = property( fget = _reverse_node_to_datatype )
+
 
     def datastate_to( self, mydatagraph ):
         #create one possible translation
@@ -253,14 +247,13 @@ class flowgraph( netx.MultiDiGraph ):
                                                     relabeled_datagraph )
         return datastate( self, nodes, edges )
 
-    def set_startgraphs( self, startprocesslist ):
-        tmpset = set()
-        for tmpprocess in startprocesslist:
-            nextnode = datastate_from_graph( self, \
-                                       tmpprocess.inputgraph)
-            self.add_node( nextnode )
-            tmpset.add( nextnode )
-        self.newestdatagraphs = tmpset
+
+    def set_startgraphs( self, startdatagraphs ):
+        tmplist = []
+        for node in startdatagraphs:
+            self.add_node( node )
+            tmplist.append( node )
+        self.newestdatagraphs = tmplist
 
 
     def _get_datatype_to_node( self ):
@@ -302,7 +295,8 @@ class flowgraph( netx.MultiDiGraph ):
             possible_alternative_nodes = [ datatype_to_node[ datatype ] \
                                         for datatype in alldata ]
         except Exception as err:
-            err.args = (*err.args, f"list of available nodes from flowgraph: {datatype_to_node}" )
+            err.args = (*err.args, "list of available nodes from "\
+                                    +f"flowgraph: {datatype_to_node}" )
             raise err
         possible_translations = itertools.product( *possible_alternative_nodes )
         possible_translations = [ trans for trans in possible_translations \
@@ -350,29 +344,22 @@ class flowgraph( netx.MultiDiGraph ):
         while self.newestdatagraphs:
             tmpset = set()
             tmplist = []
-            for tmpdatastate in self.newestdatagraphs:
-                asd = [ ((tmpdatastate,), \
-                        tmpdatastate.reachable_with_process( tmpprocess ), \
-                        (tmpprocess,))\
-                        for tmpprocess in processlist ]
-                asd = ( itertools.product( *elist ) for elist in asd )
-                asd = itertools.chain( *asd )
-                tmplist.append( asd )
-            edges = itertools.chain( *tmplist )
-
-            oldnodes = tuple( self.nodes() )
-            for oldgraph, newgraph, myprocess, in edges:
-                tmpset.add( newgraph )
-                self.add_node( newgraph )
-                self.add_edge( oldgraph, newgraph, edgetype = myprocess, \
-                                                    weight = myprocess.cost )
-            self.newestdatagraphs = tmpset.difference( oldnodes )
-       
+            next_newestdatagraphs = []
+            for tmpdatastate, factleaf_effect in itertools.product( \
+                                        self.newestdatagraphs, processlist ):
+                lll = factleaf_effect.extend_datanode( tmpdatastate )
+                for newdatastate in lll:
+                    myfoo = factleaf_effect.get_edge_function( tmpdatastate )
+                    self.add_edge( tmpdatastate, newdatastate, \
+                                    edgetype = factleaf_effect, \
+                                    edgefunction = myfoo, weight = 1 )
+                    next_newestdatagraphs.append( newdatastate )
+            self.newestdatagraphs = next_newestdatagraphs
+        return
 
 
 
-
-def translate_factoryleaf_to_datastateeffect( datatype_to_node, \
+def translate_factoryleaf_to_datastateeffect( givenflowgraph, datatype_to_node,\
                                             factoryleaflist, \
                                             node_to_datatype, conclusionlist ):
     """
@@ -386,22 +373,17 @@ def translate_factoryleaf_to_datastateeffect( datatype_to_node, \
     for factleaf in factoryleaflist:
         all_nodes, factleaf_node_to_datatype \
                         =  _extract_info_from_factleaf( factleaf )
-        possible_translations = create_possible_translation_of_nodelist( all_nodes, factleaf_node_to_datatype, datatype_to_node )
+        possible_translations = create_possible_translation_of_nodelist( \
+                                        all_nodes, factleaf_node_to_datatype, \
+                                        datatype_to_node )
         # possible_translations is now a list of dictionaries
         # every dictionary projects the nodes of the factleaf_graphs unto 
         # the node_collections 'datatype_to_node'
 
         for singletrans in possible_translations:
-            tmpingraph = netx.relabel_nodes( factleaf.prestatus, singletrans )
-            tmpoutgraph = netx.relabel_nodes( factleaf.poststatus, singletrans )
+            bubu = factoryleaf_effect( givenflowgraph, factleaf, singletrans )
+            yield( bubu )
 
-            tmpprocess = process( tmpingraph, tmpoutgraph, \
-                                        datatype_to_node, factleaf, \
-                                        node_to_datatype, singletrans, \
-                                        conclusionlist )
-            processlist.append( tmpprocess )
-            del( tmpprocess )
-    return processlist
 
 def create_possible_translation_of_nodelist( inputnodelist, \
                                 inputnode_to_datatype, datatype_to_outnode ):
@@ -424,6 +406,7 @@ def create_possible_translation_of_nodelist( inputnodelist, \
                             for oldnode, newnode in singletrans }
                             for singletrans in possible_translations ]
     return possible_translations
+
 
 def translate_conclusion_leaf( datatype_to_node, node_to_datatype, \
                                         conclusionleaf_list ):
