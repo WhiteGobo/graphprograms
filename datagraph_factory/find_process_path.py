@@ -15,10 +15,11 @@ def create_flowgraph_for_datanodes( factoryleaf_list, conclusionleaf_list=[]):
     factoryleaf_list = list( factoryleaf_list )
     node_to_datatype, datatype_to_node = get_my_nodelists( factoryleaf_list )
 
-    conclusionlist = translate_conclusion_leaf( datatype_to_node,\
+    visible_datagraphs = flowgraph( node_to_datatype )
+    conclusionlist = translate_conclusion_leaf( visible_datagraphs, \
+                                        datatype_to_node,\
                                         node_to_datatype, conclusionleaf_list )
 
-    visible_datagraphs = flowgraph( node_to_datatype )
     all_processes = list( translate_factoryleaf_to_datastateeffect( 
                                         visible_datagraphs, datatype_to_node,\
                                         factoryleaf_list, node_to_datatype, \
@@ -48,9 +49,21 @@ class conclusionleaf_effect():
         self.outputdatastate = datastate( mother_flowgraph, tmpnodes, tmpedges )
 
         self._created_edge_functions = dict()
+        
+        self.added_edges = self.outputdatastate.edges \
+                            .difference( self.inputdatastate.edges )
+    
+    def operate_on( self, mydatastate ):
+        if self.inputdatastate.issubset_to( mydatastate ):
+            return datastate( mydatastate._flowgraph, \
+                            mydatastate.nodes, \
+                            mydatastate.edges.union( self.added_edges ) )
+        else:
+            return mydatastate
 
 class factoryleaf_effect():
-    def __init__( self, mother_flowgraph, factoryleaf, translation_of_nodes ):
+    def __init__( self, mother_flowgraph, factoryleaf, translation_of_nodes,\
+                        extra_conclusions = [] ):
         self.factoryleaf = factoryleaf
         self.trans = translation_of_nodes
         self.mother_flowgraph = mother_flowgraph
@@ -66,7 +79,11 @@ class factoryleaf_effect():
         tmpnodes = [ trans[ node ] for node in outputgraph.nodes() ]
         tmpedges = [ ( trans[e[0]], trans[e[1]], e[-1][EDGETYPE] ) \
                         for e in outputgraph.edges( data=True ) ]
-        self.outputdatastate = datastate( mother_flowgraph, tmpnodes, tmpedges )
+        tmpstate = datastate( mother_flowgraph, tmpnodes, tmpedges )
+        for tmp_conclusioneffect in extra_conclusions:
+            tmpstate = tmp_conclusioneffect.operate_on( tmpstate )
+        self.outputdatastate = tmpstate
+        del( tmpstate )
 
         self._created_edge_functions = dict()
 
@@ -401,7 +418,8 @@ def translate_factoryleaf_to_datastateeffect( givenflowgraph, datatype_to_node,\
         # the node_collections 'datatype_to_node'
 
         for singletrans in possible_translations:
-            bubu = factoryleaf_effect( givenflowgraph, factleaf, singletrans )
+            bubu = factoryleaf_effect( givenflowgraph, factleaf, singletrans, \
+                                        conclusionlist )
             yield( bubu )
 
 
@@ -428,8 +446,8 @@ def create_possible_translation_of_nodelist( inputnodelist, \
     return possible_translations
 
 
-def translate_conclusion_leaf( datatype_to_node, node_to_datatype, \
-                                        conclusionleaf_list ):
+def translate_conclusion_leaf( givenflowgraph, datatype_to_node, \
+                                node_to_datatype, conclusionleaf_list ):
     translated_conclusionlist = []
     for conclusion in conclusionleaf_list:
         all_nodes, factleaf_node_to_datatype \
@@ -440,8 +458,9 @@ def translate_conclusion_leaf( datatype_to_node, node_to_datatype, \
         for singletrans in possible_translations:
             bubu = conclusionleaf_effect( givenflowgraph, conclusion, \
                                             singletrans)
-            if False:
-                yield 0
+
+            translated_conclusionlist.append( bubu )
+    return translated_conclusionlist
 
 
 def _extract_info_from_factleaf( factleaf ):

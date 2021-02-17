@@ -32,6 +32,9 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
     
     current_datastate = datastate_from_graph( flowgraph, \
                                     netx.relabel_nodes(inputgraph, translator))
+    print( "qq", outputgraph.edges( data=True ) )
+    print( "qq", netx.relabel_nodes(outputgraph, translator).edges())
+    raise Exception()
     target_datastate = datastate_from_graph( flowgraph, \
                                     netx.relabel_nodes(outputgraph, translator))
 

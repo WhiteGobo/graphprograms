@@ -63,27 +63,28 @@ class test_graph( unittest.TestCase ):
 
 
     def test_datagraph_factory_with_conclusionlist( self ):
-        #tmpgraph = datagraph()
-        #tmpgraph.add_node( "myinput", threetuple )
-        #inputgraph = tmpgraph.copy()
-        #tmpgraph.add_node( "targetprop_negative", isnegative )
-        #outputgraph = tmpgraph.copy()
-        #tmpgraph.add_edge( "myinput", "targetprop_negative", \
-        #                    property_isnegative )
-        #outputgraph_with_edge = tmpgraph.copy()
-        #del( tmpgraph )
+        tmpgraph = datagraph()
+        tmpgraph.add_node( "myinput", threetuple )
+        inputgraph = tmpgraph.copy()
+        tmpgraph.add_node( "targetprop_negative", property_valuesign )
+        outputgraph = tmpgraph.copy()
+        tmpgraph.add_edge( "myinput", "targetprop_negative", \
+                            property_isnegative )
+        outputgraph_with_edge = tmpgraph.copy()
+        del( tmpgraph )
 
         flowgraph_with_conclusion = create_flowgraph_for_datanodes( \
                                         (sumup, check_isnegative), \
                                         (conclusion_sumisnegative_so_is_tuple,))
-        for m in flowgraph_with_conclusion.node_to_datatype.items():
-            print( f"{m[0]}: {m[1]}" )
-        #print( flowgraph_with_conclusion.edges() )
-        #asd_with_conclusionleaf = create_linear_function( \
-        #                    flowgraph_with_conclusion, \
-        #                    inputgraph, outputgraph_with_edge, verbosity =1 )
-        #asd_with_conclusionleaf = myfoo( myinput = threetuple(a,b,c) )
-        #print( asd_with_conclusionleaf )
+        #softtest there should be 8 possible constellations
+        self.assertEqual( len( flowgraph_with_conclusion.nodes()), 8 )
+
+        myfoo = create_linear_function( \
+                            flowgraph_with_conclusion, \
+                            inputgraph, outputgraph_with_edge, verbosity =1 )
+        a, b, c = 2, 4, -7
+        asd_with_conclusionleaf = myfoo( myinput = threetuple(a,b,c) )
+        print( asd_with_conclusionleaf )
 
         #from .visualizer import visualize_flowgraph
         #visualize_flowgraph( flowgraph_with_conclusion )
@@ -104,12 +105,6 @@ class tuplesum( datatype ):
 class property_valuesign( datatype ):
     pass
 
-class isnegative( datatype ):
-    pass
-
-class ispositive( datatype ):
-    pass
-
 property_tuplesum = edgetype( threetuple, tuplesum, "property_tuplesum", "" )
 
 property_isnegative = edgetype( threetuple, property_valuesign, "property_isnegative", "" )
@@ -122,7 +117,7 @@ tmp = datagraph()
 tmp.add_node( "tuple", threetuple )
 tmp.add_node( "sum", tuplesum )
 tmp.add_edge( "tuple", "sum", property_tuplesum )
-tmp.add_node( "isneg", isnegative )
+tmp.add_node( "isneg", property_valuesign )
 tmp.add_edge( "sum", "isneg", property_isnegative )
 prestatus = tmp.copy()
 tmp.add_edge( "tuple", "isneg", property_isnegative )
@@ -152,8 +147,8 @@ tmp.add_node( "q", threetuple )
 tmp.add_node( "b", tuplesum )
 tmp.add_edge( "q", "b", property_tuplesum )
 prestatus = tmp.copy()
-tmp.add_node( "c", isnegative )
-tmp.add_node( "d", ispositive )
+tmp.add_node( "c", property_valuesign )
+tmp.add_node( "d", property_valuesign )
 tmp.add_edge( "b", "c", property_isnegative )
 tmp.add_edge( "b", "d", property_ispositive )
 poststatus = tmp.copy()
@@ -161,9 +156,9 @@ del( tmp )
 
 def call_function( q, b ):
     if b.val < 0:
-        return { "c": isnegative() }
+        return { "c": property_valuesign() }
     else:
-        return { "d": ispositive() }
+        return { "d": property_valuesign() }
 check_isnegative = factory_leaf( prestatus, poststatus, call_function )
 del( prestatus, poststatus, call_function )
 
