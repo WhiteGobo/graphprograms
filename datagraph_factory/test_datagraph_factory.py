@@ -6,6 +6,7 @@ from .find_process_path import create_flowgraph_for_datanodes
 from .constants import DATAGRAPH_DATATYPE as DATATYPE
 from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
 from .linear_factorybranch import create_linear_function
+from .linear_factorybranch import FailstateReached
 
 
 class test_graph( unittest.TestCase ):
@@ -25,7 +26,7 @@ class test_graph( unittest.TestCase ):
         tmpgraph = datagraph()
         tmpgraph.add_node( "myinput", threetuple )
         inputgraph = tmpgraph.copy()
-        tmpgraph.add_node( "targetprop_negative", isnegative )
+        tmpgraph.add_node( "targetprop_negative", property_valuesign )
         outputgraph = tmpgraph.copy()
         tmpgraph.add_edge( "myinput", "targetprop_negative", \
                             property_isnegative )
@@ -46,7 +47,7 @@ class test_graph( unittest.TestCase ):
             self.assertTrue( "targetprop_negative" in asd )
             self.assertEqual( len( asd ), 2 )
         except AssertionError as err:
-            err.args = (*err.args, "factoryleaf didnt produced right output" )
+            err.args = (*err.args, "factoryleaf didnt produced right output", asd )
             raise err
 
 
@@ -84,13 +85,29 @@ class test_graph( unittest.TestCase ):
                             inputgraph, outputgraph_with_edge, verbosity =1 )
         a, b, c = 2, 4, -7
         asd_with_conclusionleaf = myfoo( myinput = threetuple(a,b,c) )
-        print( asd_with_conclusionleaf )
+
+        # This tests if output has all the nodes and so the translation found
+        self.assertEqual( set(outputgraph_with_edge.nodes()), \
+                            asd_with_conclusionleaf.keys() )
+        def testfoo():
+            a, b, c = 2, 4, 7
+            myfoo( myinput = threetuple(a,b,c) )
+        self.assertRaises( FailstateReached, testfoo )
 
         #from .visualizer import visualize_flowgraph
         #visualize_flowgraph( flowgraph_with_conclusion )
 
+    def test_dataremover( self ):
+        return
+        raise Exception()
 
 
+
+class threetuple_origin( datatype ):
+    def __init__( self, a, b, c ):
+        self.a = a
+        self.b = b
+        self.c = c
 
 class threetuple( datatype ):
     def __init__( self, a=1,b=2,c=3):
@@ -105,6 +122,9 @@ class tuplesum( datatype ):
 class property_valuesign( datatype ):
     pass
 
+
+spawns_threetuple = edgetype( threetuple_origin, threetuple, \
+                                "spawned_threetuple", "" )
 property_tuplesum = edgetype( threetuple, tuplesum, "property_tuplesum", "" )
 
 property_isnegative = edgetype( threetuple, property_valuesign, "property_isnegative", "" )
@@ -160,6 +180,19 @@ def call_function( q, b ):
     else:
         return { "d": property_valuesign() }
 check_isnegative = factory_leaf( prestatus, poststatus, call_function )
+del( prestatus, poststatus, call_function )
+
+
+tmp = datagraph()
+tmp.add_node( "q", threetuple )
+tmp.add_node( "c", property_valuesign )
+tmp.add_edge( "q", "c", property_isnegative )
+prestatus = tmp.copy()
+poststatus = tmp.copy()
+del( tmp )
+def call_function( q, c ):
+    pass
+try_removing_property = factory_leaf( prestatus, poststatus, call_function )
 del( prestatus, poststatus, call_function )
 
 

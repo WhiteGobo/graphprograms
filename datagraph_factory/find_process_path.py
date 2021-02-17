@@ -155,7 +155,6 @@ class factoryleaf_effect():
             for factkey, single_output in foo_output.items():
                 mother_flowgraph.data[ mytrans[ factkey ] ] = single_output
 
-            a = mother_flowgraph.datastate
             mother_flowgraph.datastate = possible_outputstate[ \
                                             frozenset(foo_output.keys()) ]
 

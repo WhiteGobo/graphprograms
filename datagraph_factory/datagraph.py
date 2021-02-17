@@ -13,15 +13,13 @@ class datagraph( netx.MultiDiGraph ):
         else:
             super().add_node( node_id )
 
-    def add_edge( self, firstnode, secondnode=None, edgetype=None ):
-        if secondnode:
-            if edgetype:
-                super().add_edge( firstnode, secondnode, **{EDGETYPE: edgetype})
-            else:
-                super().add_edge( firstnode, secondnode )
+    def add_edge( self, firstnode, secondnode, edgetype=None ):
+        if edgetype:
+            super().add_edge( firstnode, secondnode, **{EDGETYPE: edgetype})
         else:
-            raise Exception( "this doesnt function" )
-            super().add_edge( firstnode )
+            super().add_edge( firstnode, secondnode )
+
+
 
     def copy( self ):
         newgraph = datagraph()
@@ -31,11 +29,11 @@ class datagraph( netx.MultiDiGraph ):
             newgraph.add_edge( node1, node2, data[ EDGETYPE ] )
         return newgraph
 
-    def add_edges_from( self, *args ):
-        if not args[0]:
-            return super().add_edges_from( *args )
-        else:
-            return
+    def add_edges_from( self, args ):
+        for m in args:
+            source, target = m[0], m[1]
+            myedgetype = m[-1][EDGETYPE]
+            self.add_edge( source, target, myedgetype )
 
     def test_valid( self ):
         chk1 = set(self.nodes()) == netx.get_node_attributes( self, DATATYPE ).keys()

@@ -6,6 +6,9 @@ from .find_process_path import datastate
 from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
 import math
 
+class FailstateReached( Exception ):
+    pass
+
 def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
     """
     :type flowgraph: .find_process_path.flowgraph
@@ -32,9 +35,7 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
     
     current_datastate = datastate_from_graph( flowgraph, \
                                     netx.relabel_nodes(inputgraph, translator))
-    print( "qq", outputgraph.edges( data=True ) )
-    print( "qq", netx.relabel_nodes(outputgraph, translator).edges())
-    raise Exception()
+
     target_datastate = datastate_from_graph( flowgraph, \
                                     netx.relabel_nodes(outputgraph, translator))
 
@@ -74,14 +75,25 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
 class linearflowcontroller():
     def __init__( self, myflowgraph, outputgraph, ):
         self.node_to_datatype = myflowgraph.node_to_datatype
-        nextnode_from_state, possible_datastate_at_output \
+        nextnode_from_state, possible_datastate_at_output, failstates \
                     = self.find_nextnode_from_state( myflowgraph, outputgraph )
         process_lib = self.create_process_lib( nextnode_from_state, myflowgraph)
+        process_lib = self.add_failstate_exception( failstates, process_lib )
 
+
+        self._failstates = failstates
         self.process_lib = process_lib
         self.nextnode_from_state = nextnode_from_state
         self.possible_datastate_at_output = possible_datastate_at_output
         self.myflowgraph = myflowgraph
+
+    def add_failstate_exception( self, failstates, processlib ):
+        def raiseFailstateError():
+            raise FailstateReached( "reached failstate", self.myflowgraph.datastate )
+        for singlestate in failstates:
+            processlib[ singlestate ] = raiseFailstateError
+        return processlib
+        
 
     def create_process_lib( self, nextnode_from_state, myflowgraph ):
         processlib = dict()
@@ -139,4 +151,4 @@ class linearflowcontroller():
                     for source, target_dict in all_paths \
                     if source not in possible_datastate_at_output \
                     and source not in failstates }
-        return mypaths, possible_datastate_at_output
+        return mypaths, possible_datastate_at_output, failstates
