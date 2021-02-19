@@ -97,9 +97,6 @@ def create_single_datastate_switch_function( pics, key, datastate_axes ):
 
 
 
-
-
-
 def organise_subflowgraphs( single_subgraph ):
     datastate_dict = {}
     graph_picture = None
@@ -128,74 +125,6 @@ def datastate_to_picture( mydatastate ):
     mypic = mpimg.imread( filelikebytes )
     return mypic
 
-
-class myshower_old():
-    def __init__( self, subflowgraph_list, draw_axes, radio_axes, \
-                                    datagraph_axes, datagraph_selector_axes ):
-        self.subflowgraph_list = subflowgraph_list
-
-        self._create_drawfunction( subflowgraph_list, draw_axes, datagraph_selector_axes  )
-        self._create_radiobutton( radio_axes )
-        self.drawfunction[ self.flowgraph_label[0] ]()
-        self.datastate_selector_function[ self.flowgraph_label[0] ]()
-
-    def _create_radiobutton( self, radio_axes ):
-        self.radiobuttons = RadioButtons( radio_axes, self.flowgraph_label )
-        def myfoo( radiolabel ):
-            self.drawfunction[ radiolabel ]()
-            self.datastate_selector_function[ radiolabel ]()
-            plt.draw()
-        self.radiobuttons.on_clicked( myfoo )
-
-    def _create_switch_datagraph_context( self, datagraph_selector_axes, \
-                                                single_subgraph ):
-        newradiolabels = list()
-        newradiolabels = [ repr( datastate ) \
-                            for datastate in single_subgraph.nodes() ]
-        def change_radiobuttons():
-            datagraph_selector_axes.clear()
-            self.datastate_container = RadioButtons( \
-                                            datagraph_selector_axes, \
-                                            newradiolabels )
-        return change_radiobuttons
-
-
-
-    def _set_datastate_selector_container( self, new_thingy ):
-        self._datastate_selector_container = new_thingy
-    datastate_container = property( fset = _set_datastate_selector_container )
-
-    def _create_drawfunction( self, subflowgraph_list, draw_axes, \
-                                                    datagraph_selector_axes ):
-        self.pictures = dict()
-        self.drawfunction = dict()
-        self.datastate_selector_function = dict()
-        self.flowgraph_label = []
-        for asdf in subflowgraph_list:
-            self._create_singledrawfunction( asdf, draw_axes, \
-                                                datagraph_selector_axes )
-
-
-    def _create_singledrawfunction( self, subgraph, draw_axes, \
-                                                datagraph_selector_axes ):
-        nextid = repr( len( self.flowgraph_label ) )
-        print( nextid )
-        mypic = subflowgraph_to_picture( subgraph )
-        self.pictures[ nextid ] = mypic
-        self.flowgraph_label.append( nextid )
-        def nextdrawfunction():
-            draw_axes.imshow( mypic )
-        self.drawfunction[ nextid ] = nextdrawfunction
-        next_datastate_selector = self._create_switch_datagraph_context( \
-                                                datagraph_selector_axes, \
-                                                subgraph )
-        self.datastate_selector_function[ nextid ] = next_datastate_selector
-
-
-
-def flowgraph_to_picture( myflowgraph ):
-    copyofflowgraph = netx.MultiDiGraph( myflowgraph )
-    mysubgraphs = split_graph_to_subgraphs( copyofflowgraph )
 
 def subflowgraph_to_picture( mysubflowgraph ):
     #mapping = lambda x: repr( x )
