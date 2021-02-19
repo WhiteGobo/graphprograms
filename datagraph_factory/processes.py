@@ -32,7 +32,8 @@ class factory_leaf():
     #poststatus = None # type == datagraph
     #cost = None
     def __init__( self, prestatus, poststatus, \
-                                call_function=pass_function, extra_docs="" ):
+                                                call_function=pass_function, \
+                                                extra_docs="", cost=1, name=""):
         #if call_function != pass_function:
         #    call_args = inspect.signature(call_function).parameters.keys()
         #    if set( prestatus.nodes() ) != call_args:
@@ -42,10 +43,11 @@ class factory_leaf():
         #                        +f"call: {call_args}" )
         if not (prestatus.test_valid() and poststatus.test_valid() ):
             raise Exception( prestatus.test_valid(), poststatus.test_valid() )
+        self.name = name
         self.prestatus = prestatus
         self.poststatus = poststatus
         self.call_function = call_function
-        self.cost = 1
+        self.cost = cost
 
         idtotype = netx.get_node_attributes( prestatus, DATATYPE )
         inputdoc = "input:\n"\

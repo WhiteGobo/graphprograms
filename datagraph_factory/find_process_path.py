@@ -87,6 +87,10 @@ class factoryleaf_effect():
 
         self._created_edge_functions = dict()
 
+    def _get_cost( self ):
+        return self.factoryleaf.cost
+    cost = property( fget=_get_cost )
+
     def _get_antitrans( self ):
         return { value: key for key, value in self.trans.items() }
     antitrans = property( fget = _get_antitrans )
@@ -101,11 +105,13 @@ class factoryleaf_effect():
         old = self.inputdatastate.nodes
         return old.difference( new )
 
-    def additional_edges_with_addnodes( self, nodeset ):
+    def additional_edges_with_newnodes( self, nodeset ):
+        """
+        Add all edges, where both nodes are within the new nodeset
+        """
         out_edges = self.outputdatastate.edges
         return [ edge for edge in out_edges \
-                        if (edge[1] in nodeset and edge[0] not in nodeset ) \
-                        or (edge[0] in nodeset and edge[1] not in nodeset ) ]
+                        if (edge[1] in nodeset and edge[0] in nodeset )]
 
     def extend_datanode( self, superdatastate ):
         if self.inputdatastate.issubset_to( superdatastate ):
@@ -113,8 +119,8 @@ class factoryleaf_effect():
             if not superdatastate.nodes.intersection( my_add ):
                 powerset_addnodes = _custom_powerset( my_add )
                 for addnodes in powerset_addnodes:
-                    addedges = self.additional_edges_with_addnodes( addnodes )
                     tmpnodes = superdatastate.nodes.union( addnodes )
+                    addedges = self.additional_edges_with_newnodes( tmpnodes )
                     tmpedges = superdatastate.edges.union( addedges )
                     yield datastate( superdatastate._flowgraph, \
                                         tmpnodes, tmpedges )
@@ -127,17 +133,33 @@ class factoryleaf_effect():
             self._created_edge_functions[ input_datastate ] = new_edge_function
             return new_edge_function
 
-    def _create_new_edge_function( self, input_datastate ):
+
+    def _create_dict_inputstate_with_newnodes_to_outputstate( \
+                                                    self, input_datastate ):
         possible_outputstate = {}
         my_add = self.addition_nodes()
-        powerset_addnodes = _custom_powerset( my_add )
-        for addnodes in powerset_addnodes:
-            addedges = self.additional_edges_with_addnodes( addnodes )
+        m = ""
+        for addnodes in _custom_powerset( my_add ):
+            m = m + repr( addnodes )
             tmpnodes = input_datastate.nodes.union( addnodes )
+            addedges = self.additional_edges_with_newnodes( tmpnodes )
             tmpedges = input_datastate.edges.union( addedges )
             addnodes_factleaf = ( self.antitrans[ node ] for node in addnodes)
             possible_outputstate[ frozenset( addnodes_factleaf ) ] \
                     = datastate( input_datastate._flowgraph, tmpnodes, tmpedges)
+        if input_datastate.nodes == set(('d4', 'd2', 'd5', 'd0')):
+            print( "\n\n\n\nqq\n",m, "\n\n", possible_outputstate , "\n\n", \
+                        list(_custom_powerset( my_add )),
+                        self.outputdatastate.edges \
+                        )
+        return possible_outputstate
+
+
+
+    def _create_new_edge_function( self, input_datastate ):
+        possible_outputstate = \
+                    self._create_dict_inputstate_with_newnodes_to_outputstate( \
+                                                            input_datastate )
 
         transition_function = self.factoryleaf.call_function
 
@@ -388,7 +410,8 @@ class flowgraph( netx.MultiDiGraph ):
                     myfoo = factleaf_effect.get_edge_function( tmpdatastate )
                     self.add_edge( tmpdatastate, newdatastate, \
                                     edgetype = factleaf_effect, \
-                                    edgefunction = myfoo, weight = 1 )
+                                    edgefunction = myfoo, \
+                                    weight = factleaf_effect.cost )
                     next_newestdatagraphs.append( newdatastate )
             self.newestdatagraphs = next_newestdatagraphs
         return

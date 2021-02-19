@@ -26,7 +26,10 @@ class test_graph( unittest.TestCase ):
         tmpgraph = datagraph()
         tmpgraph.add_node( "myinput", threetuple )
         inputgraph = tmpgraph.copy()
+        tmpgraph.add_node( "mysum", tuplesum )
         tmpgraph.add_node( "targetprop_negative", property_valuesign )
+        tmpgraph.add_edge( "mysum", "targetprop_negative", \
+                            property_isnegative )
         outputgraph = tmpgraph.copy()
         tmpgraph.add_edge( "myinput", "targetprop_negative", \
                             property_isnegative )
@@ -45,9 +48,10 @@ class test_graph( unittest.TestCase ):
                         +"returned only to 'myinput' and 'targetprop_negative'")
         try:
             self.assertTrue( "targetprop_negative" in asd )
-            self.assertEqual( len( asd ), 2 )
+            self.assertEqual( len( asd ), 3 )
         except AssertionError as err:
-            err.args = (*err.args, "factoryleaf didnt produced right output", asd )
+            err.args = (*err.args, "factoryleaf didnt produced right output", \
+                        asd )
             raise err
 
 
@@ -76,7 +80,8 @@ class test_graph( unittest.TestCase ):
 
         flowgraph_with_conclusion = create_flowgraph_for_datanodes( \
                                         (sumup, check_isnegative), \
-                                        (conclusion_sumisnegative_so_is_tuple,))
+                                        (conclusion_sumisnegative_so_is_tuple,\
+                                        conclusion_sumispositive_so_is_tuple))
         #softtest there should be 8 possible constellations
         self.assertEqual( len( flowgraph_with_conclusion.nodes()), 8 )
 
@@ -98,8 +103,43 @@ class test_graph( unittest.TestCase ):
         #visualize_flowgraph( flowgraph_with_conclusion )
 
     def test_dataremover( self ):
-        return
-        raise Exception()
+        used_factoryleafs = ( \
+                sumup, check_isnegative, \
+                threetuple_spawning_from_origin, \
+                threetuple_decrease_ifpositive )
+        tmpgraph = datagraph()
+        tmpgraph.add_node( "myinput", threetuple_origin )
+        inputgraph = tmpgraph.copy()
+        tmpgraph.add_node( "mynegative", threetuple )
+        tmpgraph.add_node( "targetprop_negative", property_valuesign )
+        tmpgraph.add_edge( "myinput", "mynegative", spawns_threetuple )
+        tmpgraph.add_edge( "mynegative", "targetprop_negative", \
+                            property_isnegative )
+        outputgraph = tmpgraph.copy()
+        del( tmpgraph )
+
+        myflowgraph = create_flowgraph_for_datanodes( \
+                                        used_factoryleafs, \
+                                        (conclusion_sumisnegative_so_is_tuple,\
+                                        conclusion_sumispositive_so_is_tuple))
+        from .visualize import plot_flowgraph
+        plot_flowgraph( myflowgraph )
+
+        asd = [ q for q in myflowgraph.edges(keys=True,data=True) if q[0].nodes == set(('d4', 'd2', 'd5', 'd0')) and len(q[1].nodes)==6 ]
+        #for i in myflowgraph.edges():
+        for a,b, key, data in asd:
+            print( data )
+            print( a.edges )
+            print( b.nodes )
+            print( b.edges )
+            print("")
+
+        myfoo = create_linear_function( \
+                            myflowgraph, inputgraph, \
+                            outputgraph, verbosity=1 )
+        a, b, c = 0,0,0
+        asd = myfoo( myinput=threetuple_origin( a,b,c ) )
+        raise Exception( asd )
 
 
 
@@ -147,6 +187,20 @@ conclusion_sumisnegative_so_is_tuple = conclusion_leaf( prestatus, poststatus )
 del( prestatus, poststatus )
 
 
+tmp = datagraph()
+tmp.add_node( "tuple", threetuple )
+tmp.add_node( "sum", tuplesum )
+tmp.add_edge( "tuple", "sum", property_tuplesum )
+tmp.add_node( "ispos", property_valuesign )
+tmp.add_edge( "sum", "ispos", property_ispositive )
+prestatus = tmp.copy()
+tmp.add_edge( "tuple", "ispos", property_ispositive )
+poststatus = tmp.copy()
+del( tmp )
+conclusion_sumispositive_so_is_tuple = conclusion_leaf( prestatus, poststatus )
+del( prestatus, poststatus )
+
+
 
 
 tmp = datagraph()
@@ -158,7 +212,7 @@ poststatus = tmp.copy()
 def sumfunction( mytuple ):
         erg = mytuple.a + mytuple.b + mytuple.c
         return { "mysum": tuplesum( erg ) }
-sumup = factory_leaf( prestatus, poststatus, sumfunction )
+sumup = factory_leaf( prestatus, poststatus, sumfunction, name="sumup" )
 del( prestatus, poststatus, sumfunction, tmp )
 
 
@@ -179,22 +233,43 @@ def call_function( q, b ):
         return { "c": property_valuesign() }
     else:
         return { "d": property_valuesign() }
-check_isnegative = factory_leaf( prestatus, poststatus, call_function )
+check_isnegative = factory_leaf( prestatus, poststatus, call_function, \
+                                                        name="check_sign" )
 del( prestatus, poststatus, call_function )
 
 
 tmp = datagraph()
-tmp.add_node( "q", threetuple )
-tmp.add_node( "c", property_valuesign )
-tmp.add_edge( "q", "c", property_isnegative )
+tmp.add_node( "q", threetuple_origin )
 prestatus = tmp.copy()
+tmp.add_node( "w", threetuple )
+tmp.add_edge( "q", "w", spawns_threetuple )
 poststatus = tmp.copy()
-del( tmp )
-def call_function( q, c ):
-    pass
-try_removing_property = factory_leaf( prestatus, poststatus, call_function )
-del( prestatus, poststatus, call_function )
+def call_function( q ):
+    return { "w": threetuple( q.a, q.b, q.c ) }
+threetuple_spawning_from_origin = factory_leaf( prestatus, poststatus, \
+                                                call_function, name="spawn" )
+del( prestatus, poststatus, call_function, tmp )
 
+
+tmp = datagraph()
+tmp.add_node( "q", threetuple_origin )
+tmp.add_node( "old", threetuple )
+tmp.add_edge( "q", "old", spawns_threetuple )
+tmp.add_node( "oldval", property_valuesign )
+tmp.add_edge( "old", "oldval", property_ispositive )
+prestatus = tmp.copy()
+tmp.add_node( "new", threetuple )
+tmp.add_edge( "q", "new", spawns_threetuple )
+tmp.add_node( "newval", property_valuesign )
+tmp.add_edge( "new", "newval", property_isnegative )
+poststatus = tmp.copy()
+def call_function( q, old, oldval ):
+    return { "new": threetuple( old.a-1, old.b, old.c ) , \
+                "newval": property_valuesign() }
+threetuple_decrease_ifpositive = factory_leaf( prestatus, poststatus, \
+                                                    call_function, cost=0.1,\
+                                                    name="decrease")
+del( prestatus, poststatus, call_function, tmp )
 
 
 if __name__=="__main__":

@@ -22,6 +22,8 @@ class datagraph( netx.MultiDiGraph ):
 
 
     def copy( self ):
+        if not self.test_valid():
+            raise Exception( "cant copy not valid datagraphs", self.nodes( data=True) )
         newgraph = datagraph()
         for node, data in self.nodes( data=True ):
             newgraph.add_node( node, data[ DATATYPE ] )
