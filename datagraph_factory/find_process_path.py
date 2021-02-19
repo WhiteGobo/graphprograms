@@ -147,11 +147,6 @@ class factoryleaf_effect():
             addnodes_factleaf = ( self.antitrans[ node ] for node in addnodes)
             possible_outputstate[ frozenset( addnodes_factleaf ) ] \
                     = datastate( input_datastate._flowgraph, tmpnodes, tmpedges)
-        if input_datastate.nodes == set(('d4', 'd2', 'd5', 'd0')):
-            print( "\n\n\n\nqq\n",m, "\n\n", possible_outputstate , "\n\n", \
-                        list(_custom_powerset( my_add )),
-                        self.outputdatastate.edges \
-                        )
         return possible_outputstate
 
 
