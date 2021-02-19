@@ -1,4 +1,4 @@
-import graphviz as gv
+#import graphviz as gv
 import networkx as netx
 import pydot
 import io
@@ -11,23 +11,35 @@ def myvis( myflowgraph ):
     flowgraph_list = split_graph_to_subgraphs( myflowgraph )
 
     plt.figure()
-    graph_axes = plt.axes([ 0.05, 0.05, 0.4, 0.9 ])
-    radio_axes = plt.axes([0.45, 0.05, 0.1, 0.9])
-    datagraph_axes = plt.axes([0.6, 0.55, 0.3, 0.4])
-    datagraph_selector_axes = plt.axes([0.9, 0.05, 0.1, 0.9])
+    graph_axes = plt.axes([ 0.0, 0.55, 0.9, 0.4 ])
+    radio_axes = plt.axes([0.9, 0.55, 0.08, 0.4])
+    datagraph_axes = plt.axes([0.0, 0.05, 0.9, 0.4])
+    datagraph_selector_axes = plt.axes([0.9, 0.05, 0.08, 0.4])
+    plt.figure()
+    legendaxis = plt.axes()
+
     asd = myshower( flowgraph_list, graph_axes, radio_axes, datagraph_axes, \
-                                                    datagraph_selector_axes )
+                                            datagraph_selector_axes, legendaxis)
     #plt.imshow( mypic )
+
+    print("\nnode in datastate to nodetype:\n")
+    for i in myflowgraph.node_to_datatype.items():
+        print(i)
+
     plt.show()
 
 class myshower():
     def __init__( self, subflowgraph_list, draw_axes, radio_axes, \
-                                    datagraph_axes, datagraph_selector_axes ):
+                                    datagraph_axes, datagraph_selector_axes, \
+                                    legendaxis ):
         subflowgraph_list = list( subflowgraph_list )
         radiolabellist = []
         flowgraph_pic_dict = {}
         datastate_superdict = {}
-        all_pictures = [ organise_subflowgraphs( singlegraph ) \
+        factoryleaf_to_color = create_colordict( subflowgraph_list )
+        create_legend( legendaxis, factoryleaf_to_color )
+        all_pictures = [ organise_subflowgraphs( singlegraph, \
+                                                    factoryleaf_to_color ) \
                             for singlegraph in subflowgraph_list ]
         picdict = { repr(i): all_pictures[i] for i in range(len(all_pictures))}
 
@@ -85,7 +97,6 @@ class myshower():
 def create_single_datastate_switch_function( pics, key, datastate_axes ):
     datastate_pics_dict = pics[1]
     def myfoo( radiolabel ):
-        print( key )
         datastate_axes.clear()
         try:
             datastate_axes.imshow( datastate_pics_dict[radiolabel] )
@@ -97,7 +108,7 @@ def create_single_datastate_switch_function( pics, key, datastate_axes ):
 
 
 
-def organise_subflowgraphs( single_subgraph ):
+def organise_subflowgraphs( single_subgraph, factoryleaf_to_color ):
     datastate_dict = {}
     graph_picture = None
 
@@ -108,7 +119,8 @@ def organise_subflowgraphs( single_subgraph ):
     for i in intgraph.nodes():
         datastate_dict[repr(i)] = datastate_to_picture( int_to_datastate[i] )
 
-    graph_picture = subflowgraph_to_picture( single_subgraph )
+    graph_picture = subflowgraph_to_picture( single_subgraph, \
+                                                factoryleaf_to_color )
 
     return graph_picture, datastate_dict
 
@@ -125,16 +137,44 @@ def datastate_to_picture( mydatastate ):
     mypic = mpimg.imread( filelikebytes )
     return mypic
 
+def _set_edgecolor( netxgraph, factory_leaf_to_color ):
+    input_data = netx.get_edge_attributes( netxgraph, "edgetype" )
+    input_data = { key: value.factoryleaf for key, value in input_data.items()}
+    color_dict = { key: factory_leaf_to_color[ value ] \
+                    for key, value in input_data.items() }
+    netx.set_edge_attributes(netxgraph, color_dict, "color" )
 
-def subflowgraph_to_picture( mysubflowgraph ):
+def subflowgraph_to_picture( mysubflowgraph, factoryleaf_to_color ):
     #mapping = lambda x: repr( x )
     #netx.relabel_nodes( copyofflowgraph, mapping, copy = False )
     copyofflowgraph = netx.convert_node_labels_to_integers( mysubflowgraph )
+    _set_edgecolor( copyofflowgraph, factoryleaf_to_color )
     m = netx.drawing.nx_pydot.to_pydot( copyofflowgraph )
     mybytes = m.create_png()
     filelikebytes = io.BytesIO( mybytes )
     mypic = mpimg.imread( filelikebytes )
     return mypic
+
+
+def create_legend( legendaxis, factleaf_to_color ):
+    colorgraph = netx.Graph()
+    lastnode = None
+    for factleaf, color in factleaf_to_color.items():
+        if factleaf.name:
+            nodename = factleaf.name
+        else:
+            nodename = repr( factleaf )
+        colorgraph.add_node( nodename, color=color )
+        if lastnode:
+            colorgraph.add_edge( nodename, lastnode )
+        lastnode=nodename
+
+    m = netx.drawing.nx_pydot.to_pydot( colorgraph )
+    mybytes = m.create_png()
+    filelikebytes = io.BytesIO( mybytes )
+    mypic = mpimg.imread( filelikebytes )
+    legendaxis.imshow( mypic )
+
 
 
 def split_graph_to_subgraphs( supergraph ):
@@ -143,4 +183,16 @@ def split_graph_to_subgraphs( supergraph ):
     subgraph_sets = netx.connected_components( asd )
     return [ multigraph.subgraph( myset ) for myset in subgraph_sets ]
 
+def create_colordict( subflowgraph_list ):
+    all_factoryleafs = set()
+    for singlegraph in subflowgraph_list:
+        input_data = netx.get_edge_attributes( singlegraph, "edgetype" )
+        all_factoryleafs = all_factoryleafs.union( value.factoryleaf \
+                                            for value in input_data.values())
+    #factoryleaf_to_color ={ factleaf: "blue" for factleaf in all_factoryleafs }
+    colorlist = ["blue1", "brown", "burlywood", "cadetblue", "chartreuse", "chocolate", "coral", "cornflowerblue", "cornsilk" ]
+    coloriter = iter( colorlist )
+    factoryleaf_to_color = { factleaf: coloriter.__next__() \
+                            for factleaf in all_factoryleafs }
+    return factoryleaf_to_color
 
