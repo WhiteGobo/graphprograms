@@ -420,7 +420,7 @@ class flowgraph( netx.MultiDiGraph ):
                                     edgefunction = myfoo, \
                                     weight = factleaf_effect.cost )
                     next_newestdatagraphs.append( newdatastate )
-            self.newestdatagraphs = next_newestdatagraphs
+            self.newestdatagraphs = set( next_newestdatagraphs )
         return
 
 
