@@ -120,41 +120,24 @@ def get_datanode_maximal_occurence( processlist ):
         if _dictionaries_have_contradiction( inputdict, outputdict ):
             raise Exception( "prestatus and poststatus of "\
                     +f"{process.__qualname__} contradict oneanother")
-
-        input_type_list, output_type_list = None, None
-        occur_in, occur_out = None, None
-        inputgraph = process.prestatus
-        try:
-            input_type_list = [ inputdict[ node ] \
-                            for node in inputgraph.nodes() ]
-        except KeyError as err:
-            err.args = (*err.args, f"process {process.__qualname__} wasnt "\
+        if inputdict.keys() != set( process.prestatus.nodes() ):
+            raise Exception(f"process {process.__qualname__} wasnt "\
                         + f"properly declared. Inputnodes lacked property"\
                         +f" 'datagraph_factory.constants.DATAGRAPH_DATATYPE'.",\
                         f"found nodes: {inputgraph.nodes()}" )
-            raise err
-        occur_in = Counter( input_type_list )
-        del( input_type_list, inputgraph )
-        outputgraph = process.poststatus
-        try:
-            output_type_list = [ outputdict[ node ] \
-                            for node in outputgraph.nodes() ]
-        except KeyError as err:
-            err.args = (*err.args, f"process {process.__qualname__} wasnt "\
+        if outputdict.keys() != set( process.poststatus.nodes() ):
+            raise Exception( f"process {process.__qualname__} wasnt "\
                         + f"properly declared. Outputnodes lacked property"\
                         +f" 'datagraph_factory.constants.DATAGRAPH_DATATYPE'.",\
                         f"found nodes: {outputgraph.nodes()}" )
-            raise err
-        occur_out = Counter( output_type_list )
-        del( output_type_list, outputgraph )
+        wholedict = inputdict
+        wholedict.update( outputdict )
+        occur = Counter( wholedict.values() )
 
-        for datatype, occ in occur_in.items():
-            dt = datatype
-            maxoccur[ dt ] = max( occ, maxoccur.get( dt, 0 ) )
-            del( dt )
-        for datatype, occ in occur_out.items():
+        for datatype, occ in occur.items():
             dt = datatype
             maxoccur[ dt ] = max( occ, maxoccur.get( dt, 0 ) )
             del( dt )
 
     return maxoccur
+

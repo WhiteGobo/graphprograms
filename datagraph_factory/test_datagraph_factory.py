@@ -107,6 +107,10 @@ class test_graph( unittest.TestCase ):
                 sumup, check_isnegative, \
                 threetuple_spawning_from_origin, \
                 threetuple_decrease_ifpositive )
+        #used_factoryleafs = ( \
+        #        #sumup, check_isnegative, \
+        #        threetuple_decrease_ifpositive, \
+        #        )
         tmpgraph = datagraph()
         tmpgraph.add_node( "myinput", threetuple_origin )
         inputgraph = tmpgraph.copy()
@@ -258,6 +262,8 @@ tmp.add_edge( "q", "old", spawns_threetuple )
 tmp.add_node( "oldval", property_valuesign )
 tmp.add_edge( "old", "oldval", property_ispositive )
 prestatus = tmp.copy()
+tmp.remove_node( "old" )
+tmp.remove_node( "oldval" )
 tmp.add_node( "new", threetuple )
 tmp.add_edge( "q", "new", spawns_threetuple )
 tmp.add_node( "newval", property_valuesign )

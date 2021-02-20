@@ -87,6 +87,8 @@ class factoryleaf_effect():
 
         self._created_edge_functions = dict()
 
+        print( "wait what?", self.remove_nodes(),"\n", self.inputdatastate,"\n", self.outputdatastate )
+
     def _get_cost( self ):
         return self.factoryleaf.cost
     cost = property( fget=_get_cost )
@@ -116,12 +118,17 @@ class factoryleaf_effect():
     def extend_datanode( self, superdatastate ):
         if self.inputdatastate.issubset_to( superdatastate ):
             my_add = self.addition_nodes()
+            my_remove = self.remove_nodes()
             if not superdatastate.nodes.intersection( my_add ):
                 powerset_addnodes = _custom_powerset( my_add )
                 for addnodes in powerset_addnodes:
                     tmpnodes = superdatastate.nodes.union( addnodes )
+                    tmpnodes = tmpnodes.difference( my_remove )
                     addedges = self.additional_edges_with_newnodes( tmpnodes )
                     tmpedges = superdatastate.edges.union( addedges )
+                    tmpedges = frozenset( edge for edge in tmpedges \
+                                            if (edge[1] in tmpnodes \
+                                            and edge[0] in tmpnodes ))
                     yield datastate( superdatastate._flowgraph, \
                                         tmpnodes, tmpedges )
 
@@ -138,12 +145,17 @@ class factoryleaf_effect():
                                                     self, input_datastate ):
         possible_outputstate = {}
         my_add = self.addition_nodes()
+        my_remove = self.remove_nodes()
         m = ""
         for addnodes in _custom_powerset( my_add ):
             m = m + repr( addnodes )
             tmpnodes = input_datastate.nodes.union( addnodes )
+            tmpnodes = tmpnodes.difference( my_remove )
             addedges = self.additional_edges_with_newnodes( tmpnodes )
             tmpedges = input_datastate.edges.union( addedges )
+            tmpedges = frozenset( edge for edge in tmpedges \
+                                            if (edge[1] in tmpnodes \
+                                            and edge[0] in tmpnodes ))
             addnodes_factleaf = ( self.antitrans[ node ] for node in addnodes)
             possible_outputstate[ frozenset( addnodes_factleaf ) ] \
                     = datastate( input_datastate._flowgraph, tmpnodes, tmpedges)
@@ -469,9 +481,13 @@ def translate_conclusion_leaf( givenflowgraph, datatype_to_node, \
     for conclusion in conclusionleaf_list:
         all_nodes, factleaf_node_to_datatype \
                         =  _extract_info_from_factleaf( conclusion )
-        possible_translations = create_possible_translation_of_nodelist( \
+        try:
+            possible_translations = create_possible_translation_of_nodelist( \
                                         all_nodes, factleaf_node_to_datatype, \
                                         datatype_to_node )
+        #catch error if not all datatypes of conclusion is are used
+        except KeyError: 
+            possible_translations = list()
         for singletrans in possible_translations:
             bubu = conclusionleaf_effect( givenflowgraph, conclusion, \
                                             singletrans)
