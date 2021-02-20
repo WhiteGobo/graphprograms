@@ -6,6 +6,10 @@ from collections import Counter
 from .constants import DATAGRAPH_DATATYPE as DATATYPE
 from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
 
+
+class datastate_not_connected_error( Exception ):
+    pass
+
 def create_flowgraph_for_datanodes( factoryleaf_list, conclusionleaf_list=[]):
     """
     :rtype: flowgraph
@@ -122,15 +126,10 @@ class factoryleaf_effect():
             if not superdatastate.nodes.intersection( my_add ):
                 powerset_addnodes = _custom_powerset( my_add )
                 for addnodes in powerset_addnodes:
-                    tmpnodes = superdatastate.nodes.union( addnodes )
-                    tmpnodes = tmpnodes.difference( my_remove )
-                    addedges = self.additional_edges_with_newnodes( tmpnodes )
-                    tmpedges = superdatastate.edges.union( addedges )
-                    tmpedges = frozenset( edge for edge in tmpedges \
-                                            if (edge[1] in tmpnodes \
-                                            and edge[0] in tmpnodes ))
-                    yield datastate( superdatastate._flowgraph, \
-                                        tmpnodes, tmpedges )
+                    returndatastate = self._create_nextdatastate( addnodes, \
+                                                            superdatastate )
+                    if returndatastate:
+                        yield returndatastate
 
     def get_edge_function( self, input_datastate ):
         if input_datastate in self._created_edge_functions:
@@ -141,24 +140,42 @@ class factoryleaf_effect():
             return new_edge_function
 
 
+    def _create_nextdatastate( self, addnodes, input_datastate, ):
+        tmpnodes = input_datastate.nodes.union( addnodes )
+        tmpnodes = tmpnodes.difference( self.remove_nodes() )
+
+        addedges = self.additional_edges_with_newnodes( tmpnodes )
+
+        tmpedges = input_datastate.edges.union( addedges )
+        tmpedges = frozenset( edge for edge in tmpedges \
+                                    if ( edge[1] in tmpnodes \
+                                    and edge[0] in tmpnodes ) )
+        tmpnodes = only_nodes_connected_to_given_nodes( tmpnodes, \
+                                    [ (edge[0],edge[1]) for edge in tmpedges], \
+                                    addnodes )
+        tmpedges = frozenset( edge for edge in tmpedges \
+                                    if ( edge[1] in tmpnodes \
+                                    and edge[0] in tmpnodes ) )
+        try:
+            return datastate( self.mother_flowgraph, tmpnodes, tmpedges )
+        except datastate_not_connected_error:
+            return None
+
+
     def _create_dict_inputstate_with_newnodes_to_outputstate( \
                                                     self, input_datastate ):
         possible_outputstate = {}
         my_add = self.addition_nodes()
         my_remove = self.remove_nodes()
-        m = ""
         for addnodes in _custom_powerset( my_add ):
-            m = m + repr( addnodes )
-            tmpnodes = input_datastate.nodes.union( addnodes )
-            tmpnodes = tmpnodes.difference( my_remove )
-            addedges = self.additional_edges_with_newnodes( tmpnodes )
-            tmpedges = input_datastate.edges.union( addedges )
-            tmpedges = frozenset( edge for edge in tmpedges \
-                                            if (edge[1] in tmpnodes \
-                                            and edge[0] in tmpnodes ))
-            addnodes_factleaf = ( self.antitrans[ node ] for node in addnodes)
-            possible_outputstate[ frozenset( addnodes_factleaf ) ] \
-                    = datastate( input_datastate._flowgraph, tmpnodes, tmpedges)
+
+            returndatastate = self._create_nextdatastate( addnodes, \
+                                                            input_datastate )
+            if returndatastate:
+                addnodes_factleaf = ( self.antitrans[ node ] \
+                                        for node in addnodes)
+                possible_outputstate[ frozenset( addnodes_factleaf ) ] \
+                                                            = returndatastate
         return possible_outputstate
 
 
@@ -188,6 +205,7 @@ class factoryleaf_effect():
                                             frozenset(foo_output.keys()) ]
 
         return edge_transition_function
+
 
 
 
@@ -238,6 +256,9 @@ class datastate():
         self._flowgraph = mother_flowgraph
         self.nodes, self.edges = frozenset( nodes ), frozenset( edges )
 
+        if not self.is_connected():
+            raise datastate_not_connected_error()
+
     def _get_node_to_datatype( self ):
         return self._flowgraph.node_to_datatype
 
@@ -246,7 +267,7 @@ class datastate():
     def is_connected( self ):
         testgraph = netx.Graph()
         for node in self.nodes:
-            testgraph.add_nodes()
+            testgraph.add_node( node )
         for edge in self.edges:
             testgraph.add_edge( edge[0], edge[1] )
         return netx.is_connected( testgraph )
@@ -415,6 +436,7 @@ class flowgraph( netx.MultiDiGraph ):
 
     def extend_visible_datagraphs_fully( self, processlist ):
         while self.newestdatagraphs:
+            oldnodes = list( self.nodes() )
             tmpset = set()
             tmplist = []
             next_newestdatagraphs = []
@@ -428,7 +450,8 @@ class flowgraph( netx.MultiDiGraph ):
                                     edgefunction = myfoo, \
                                     weight = factleaf_effect.cost )
                     next_newestdatagraphs.append( newdatastate )
-            self.newestdatagraphs = set( next_newestdatagraphs )
+            self.newestdatagraphs = set( next_newestdatagraphs )\
+                                    .difference( oldnodes )
         return
 
 
@@ -557,3 +580,14 @@ def _custom_powerset(iterable):
                 )
     return itertools.chain( *list_of_lists )
 
+def only_nodes_connected_to_given_nodes( mynodes, myedges, addnodes ):
+    if len( addnodes ) == 0:
+        return mynodes
+    asd = netx.Graph()
+    asd.add_nodes_from( mynodes )
+    asd.add_edges_from( myedges )
+    components = netx.algorithms.components.connected_components( asd )
+    thereisnewconnected = lambda mylist: any([ n in mylist for n in addnodes ])
+    components = [ single for single in components \
+                    if thereisnewconnected( single ) ]
+    return frozenset( itertools.chain( *components ) )
