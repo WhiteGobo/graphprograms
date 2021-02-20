@@ -243,6 +243,14 @@ class datastate():
 
     node_to_datatype = property( fget = _get_node_to_datatype )
 
+    def is_connected( self ):
+        testgraph = netx.Graph()
+        for node in self.nodes:
+            testgraph.add_nodes()
+        for edge in self.edges:
+            testgraph.add_edge( edge[0], edge[1] )
+        return netx.is_connected( testgraph )
+
     def __repr__( self ):
         return f"data({tuple(self.nodes)}, {tuple(self.edges)})"
 
