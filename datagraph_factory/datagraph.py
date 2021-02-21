@@ -3,6 +3,9 @@ from .constants import DATAGRAPH_DATATYPE as DATATYPE
 from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
 
 class datagraph( netx.MultiDiGraph ):
+    """
+    This is a datagraph
+    """
     def __init__( self, *args, **argv ):
         super().__init__( *args, **argv )
         self._equivalent_list = set( self )
