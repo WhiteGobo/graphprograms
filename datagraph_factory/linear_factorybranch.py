@@ -5,8 +5,12 @@ from .find_process_path import datastate_from_graph
 from .find_process_path import datastate
 from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
 import math
+import itertools
+from .find_process_path import datastate_not_connected_error
 
 class FailstateReached( Exception ):
+    pass
+class NoPathToOutput( Exception ):
     pass
 
 def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
@@ -16,7 +20,7 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
     node_to_datatype = flowgraph.node_to_datatype
 
     try:
-        translator = flowgraph.translator( inputgraph, outputgraph )
+        translators = flowgraph.translator( inputgraph, outputgraph )
     except KeyError as err:
         err.args = (*err.args, "cant create function for the purpose of "\
                         "creating the outputgraph from the inputgraph."\
@@ -32,20 +36,32 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
             err.args = (*err.args, "for more information "\
                         +"create_linear_function( ..., verbosity = 1 )")
         raise err
+    inputtranslator = translators[0]
     
-    current_datastate = datastate_from_graph( flowgraph, \
-                                    netx.relabel_nodes(inputgraph, translator))
+    try:
+        current_datastate = datastate_from_graph( flowgraph, \
+                                netx.relabel_nodes(inputgraph, inputtranslator))
+    except datastate_not_connected_error as err:
+        err.args = ( *err.args, "ingraph must be connected" )
+        raise err
 
-    target_datastate = datastate_from_graph( flowgraph, \
-                                    netx.relabel_nodes(outputgraph, translator))
+    try:
+        target_datastates = { datastate_from_graph( flowgraph, \
+                                netx.relabel_nodes(outputgraph, trans)): \
+                                trans \
+                                for trans in translators }
+    except datastate_not_connected_error as err:
+        err.args = ( *err.args, "outputgraph must be connected" )
+        raise err
 
-    flowcontroller = linearflowcontroller( flowgraph, target_datastate )
+    flowcontroller = linearflowcontroller( flowgraph, target_datastates )
+
 
     def call_function( **args ):
         if set( inputgraph.nodes() ) != args.keys():
             raise KeyError( f"wrong input needed: {inputgraph.nodes()} "\
                             f"and got {args.keys()}" )
-        mydatacontainer = { translator[ key ]:value \
+        mydatacontainer = { inputtranslator[ key ]:value \
                             for key, value in args.items() }
         flowcontroller.myflowgraph.datastate = current_datastate
 
@@ -53,6 +69,8 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
         
         while flowcontroller.next_step():
             pass
+
+        return flowcontroller.get_output_data()
 
         mydatacontainer = flowcontroller.data
 
@@ -73,13 +91,23 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
 
 
 class linearflowcontroller():
-    def __init__( self, myflowgraph, outputgraph, ):
+    def __init__( self, myflowgraph, outputstates_to_graph ):
+        outputstates = list( outputstates_to_graph.keys() )
         self.node_to_datatype = myflowgraph.node_to_datatype
-        nextnode_from_state, possible_datastate_at_output, failstates \
-                    = self.find_nextnode_from_state( myflowgraph, outputgraph )
+        nextnode_from_state, possible_datastate_at_output_with_trans,failstates\
+                    = self.find_nextnode_from_state( myflowgraph, \
+                                                    outputstates_to_graph )
+        possible_datastate_at_output = possible_datastate_at_output_with_trans
+        if len( possible_datastate_at_output) == 0:
+            raise NoPathToOutput( "Cant find way to create given output "\
+                                    "with this flowgraph", \
+                                    "possible outputstates are: %s"\
+                                    %(outputstates_to_graph) )
         process_lib = self.create_process_lib( nextnode_from_state, myflowgraph)
         process_lib = self.add_failstate_exception( failstates, process_lib )
 
+        #self.outputstates_to_graph = outputstates_to_graph
+        self.outputstates_to_graph = possible_datastate_at_output_with_trans
 
         self._failstates = failstates
         self.process_lib = process_lib
@@ -87,9 +115,28 @@ class linearflowcontroller():
         self.possible_datastate_at_output = possible_datastate_at_output
         self.myflowgraph = myflowgraph
 
+    def get_output_data( self ):
+        currentstate = self.myflowgraph.datastate
+        mydatacontainer = self.data
+        translator = self.outputstates_to_graph[ currentstate ]
+
+        return_translator = \
+                { \
+                newkey : value \
+                for value, newkey in translator.items() \
+                if newkey in mydatacontainer \
+                }
+        return { value: mydatacontainer[ key ] \
+                for key, value in return_translator.items() }
+
+
+
+
+
     def add_failstate_exception( self, failstates, processlib ):
         def raiseFailstateError():
-            raise FailstateReached( "reached failstate", self.myflowgraph.datastate )
+            raise FailstateReached( "reached failstate", \
+                                    self.myflowgraph.datastate )
         for singlestate in failstates:
             processlib[ singlestate ] = raiseFailstateError
         return processlib
@@ -123,14 +170,29 @@ class linearflowcontroller():
             return False
 
 
-    def find_nextnode_from_state( self, flowgraph, outputstate ):
+    def find_nextnode_from_state( self, flowgraph, \
+                                    outputstates_with_translation ):
         """
         :return mypaths:
         :rtype mypaths:
         :return possible_datastate_at_output:
         :rtype possible_datastate_at_output:
         """
-        possible_datastate_at_output = flowgraph.get_superstates_to(outputstate)
+        foo_allsuperstate_with_trans = lambda state, translation: \
+                    itertools.product( \
+                    flowgraph.get_superstates_to(state ),\
+                    [translation] )
+        tmppairs = (foo_allsuperstate_with_trans( state, translation )\
+                    for state, translation \
+                    in outputstates_with_translation.items() )
+        possible_datastate_at_output_with_translation \
+                    = { key:value \
+                        for key, value in itertools.chain( *tmppairs ) }
+        possible_datastate_at_output \
+                = set( possible_datastate_at_output_with_translation.keys() )
+        #possible_datastate_at_output = set( \
+        #            itertools.chain(*[ flowgraph.get_superstates_to(state )\
+        #            for state in outputstates ] ) )
 
         filter_path_possoutput = lambda tmpdict: { key:value \
                                     for key, value in tmpdict.items() \
@@ -151,4 +213,4 @@ class linearflowcontroller():
                     for source, target_dict in all_paths \
                     if source not in possible_datastate_at_output \
                     and source not in failstates }
-        return mypaths, possible_datastate_at_output, failstates
+        return mypaths, possible_datastate_at_output_with_translation, failstates

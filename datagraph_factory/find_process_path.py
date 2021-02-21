@@ -91,7 +91,6 @@ class factoryleaf_effect():
 
         self._created_edge_functions = dict()
 
-        print( "wait what?", self.remove_nodes(),"\n", self.inputdatastate,"\n", self.outputdatastate )
 
     def _get_cost( self ):
         return self.factoryleaf.cost
@@ -257,7 +256,11 @@ class datastate():
         self.nodes, self.edges = frozenset( nodes ), frozenset( edges )
 
         if not self.is_connected():
-            raise datastate_not_connected_error()
+            nodesandtypes = {node: mother_flowgraph.node_to_datatype[node] \
+                                for node in nodes }
+            raise datastate_not_connected_error( \
+                                f"nodes are: {nodesandtypes}. "\
+                                +f"Edges are {edges}" )
 
     def _get_node_to_datatype( self ):
         return self._flowgraph.node_to_datatype
@@ -366,11 +369,16 @@ class flowgraph( netx.MultiDiGraph ):
         :type graphs: networkx.Graph
         :todo: This function must be rehauled
         """
-        # error control every shared node must  not conflict with oneanother
+        graphnode_to_datatype = {}
         for graph in graphs:
             graph.raise_exception_if_not_valid()
-
+            graphnode_to_datatype.update( netx.get_node_attributes( graph, \
+                                                                    DATATYPE ))
         datatype_to_node = self.datatype_to_node
+        possible_translations = create_possible_translation_of_nodelist( \
+                                            graphnode_to_datatype, \
+                                            datatype_to_node )
+        return possible_translations
 
         possible_translation = {}
         alldata = {}
@@ -471,7 +479,7 @@ def translate_factoryleaf_to_datastateeffect( givenflowgraph, datatype_to_node,\
         all_nodes, factleaf_node_to_datatype \
                         =  _extract_info_from_factleaf( factleaf )
         possible_translations = create_possible_translation_of_nodelist( \
-                                        all_nodes, factleaf_node_to_datatype, \
+                                        factleaf_node_to_datatype, \
                                         datatype_to_node )
         # possible_translations is now a list of dictionaries
         # every dictionary projects the nodes of the factleaf_graphs unto 
@@ -483,10 +491,10 @@ def translate_factoryleaf_to_datastateeffect( givenflowgraph, datatype_to_node,\
             yield( bubu )
 
 
-def create_possible_translation_of_nodelist( inputnodelist, \
+def create_possible_translation_of_nodelist( \
                                 inputnode_to_datatype, datatype_to_outnode ):
     possiblenodeslist_list = []
-    all_nodes = list( inputnodelist )
+    all_nodes = list( inputnode_to_datatype.keys() )
     for node in all_nodes:
         possible_nodes_for_singletype \
                 = datatype_to_outnode[ inputnode_to_datatype[ node ] ]
@@ -514,7 +522,7 @@ def translate_conclusion_leaf( givenflowgraph, datatype_to_node, \
                         =  _extract_info_from_factleaf( conclusion )
         try:
             possible_translations = create_possible_translation_of_nodelist( \
-                                        all_nodes, factleaf_node_to_datatype, \
+                                        factleaf_node_to_datatype, \
                                         datatype_to_node )
         #catch error if not all datatypes of conclusion is are used
         except KeyError: 

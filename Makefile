@@ -19,7 +19,8 @@ test_newthing:
 	python -m unittest newthing.test_newthing
 
 test_datagraph_factory:
-	#python -m unittest datagraph_factory.test_datagraph_factory.test_graph.test_factory_leaf
+	#python -m unittest datagraph_factory.test_datagraph_factory.test_graph.test_datagraph_factory_with_conclusionlist
+	#python -m unittest datagraph_factory.test_datagraph_factory.test_graph.test_dataremover
 	python -m unittest datagraph_factory.test_datagraph_factory
 
 clear:

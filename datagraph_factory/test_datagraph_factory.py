@@ -2,6 +2,8 @@ import unittest
 from .processes import factory_leaf, conclusion_leaf
 from .datagraph import datagraph, datatype, edgetype
 from .find_process_path import create_flowgraph_for_datanodes
+from . import find_process_path
+from . import linear_factorybranch
 
 from .constants import DATAGRAPH_DATATYPE as DATATYPE
 from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
@@ -30,10 +32,13 @@ class test_graph( unittest.TestCase ):
         tmpgraph.add_node( "targetprop_negative", property_valuesign )
         tmpgraph.add_edge( "mysum", "targetprop_negative", \
                             property_isnegative )
-        outputgraph = tmpgraph.copy()
+        outputgraph_without_edge = tmpgraph.copy()
         tmpgraph.add_edge( "myinput", "targetprop_negative", \
                             property_isnegative )
-        outputgraph_with_edge = tmpgraph.copy()
+        outputgraph_with_wrong_edge = tmpgraph.copy()
+        tmpgraph.remove_edge( "myinput", "targetprop_negative", 0 )
+        tmpgraph.add_edge( "myinput", "mysum", property_tuplesum )
+        outputgraph = tmpgraph.copy()
         del( tmpgraph )
 
         myfoo = create_linear_function( flowgraph, inputgraph, outputgraph )
@@ -57,9 +62,23 @@ class test_graph( unittest.TestCase ):
 
         def testfoo():
             create_linear_function( flowgraph, \
-                            inputgraph, outputgraph_with_edge, verbosity =1 )
+                            inputgraph, outputgraph_without_edge, \
+                            verbosity =1 )
         try:
-            self.assertRaises( KeyError, testfoo )
+            self.assertRaises( find_process_path.datastate_not_connected_error,\
+                                testfoo )
+        except AssertionError as err:
+            err.args = (*err.args, "This function should have thrown an error"
+                        "because it the outputgraph isnt connected" )
+            raise err
+
+        def testfoo():
+            create_linear_function( flowgraph, \
+                            inputgraph, outputgraph_with_wrong_edge, \
+                            verbosity =1 )
+        try:
+            self.assertRaises( linear_factorybranch.NoPathToOutput,\
+                                testfoo )
         except AssertionError as err:
             err.args = (*err.args, "This function should have thrown an error"
                         "because it cant find with given factoryleafs"
@@ -126,8 +145,8 @@ class test_graph( unittest.TestCase ):
                                         used_factoryleafs, \
                                         (conclusion_sumisnegative_so_is_tuple,\
                                         conclusion_sumispositive_so_is_tuple))
-        from .visualize import plot_flowgraph
-        plot_flowgraph( myflowgraph )
+        #from .visualize import plot_flowgraph
+        #plot_flowgraph( myflowgraph )
 
         asd = [ q for q in myflowgraph.edges(keys=True,data=True) if q[0].nodes == set(('d4', 'd2', 'd5', 'd0')) and len(q[1].nodes)==6 ]
         #for i in myflowgraph.edges():
@@ -136,14 +155,15 @@ class test_graph( unittest.TestCase ):
             print( a.edges )
             print( b.nodes )
             print( b.edges )
-            print("")
+            print(" \n\n\n")
 
         myfoo = create_linear_function( \
                             myflowgraph, inputgraph, \
                             outputgraph, verbosity=1 )
-        a, b, c = 0,0,0
+        a, b, c = 0,4,2
         asd = myfoo( myinput=threetuple_origin( a,b,c ) )
-        raise Exception( asd )
+        outputtuple = asd["mynegative"]
+        self.assertEqual( -outputtuple.a, outputtuple.b + outputtuple.c + 1)
 
 
 
@@ -266,14 +286,11 @@ tmp.remove_node( "old" )
 tmp.remove_node( "oldval" )
 tmp.add_node( "new", threetuple )
 tmp.add_edge( "q", "new", spawns_threetuple )
-tmp.add_node( "newval", property_valuesign )
-tmp.add_edge( "new", "newval", property_isnegative )
 poststatus = tmp.copy()
 def call_function( q, old, oldval ):
-    return { "new": threetuple( old.a-1, old.b, old.c ) , \
-                "newval": property_valuesign() }
+    return { "new": threetuple( old.a-1, old.b, old.c ) }
 threetuple_decrease_ifpositive = factory_leaf( prestatus, poststatus, \
-                                                    call_function, cost=0.1,\
+                                                    call_function, cost=2,\
                                                     name="decrease")
 del( prestatus, poststatus, call_function, tmp )
 
