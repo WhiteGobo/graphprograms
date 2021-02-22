@@ -24,10 +24,14 @@ def create_flowgraph_for_datanodes( factoryleaf_list, conclusionleaf_list=[]):
                                         datatype_to_node,\
                                         node_to_datatype, conclusionleaf_list )
 
-    all_processes = list( translate_factoryleaf_to_datastateeffect( 
+    try:
+        all_processes = list( translate_factoryleaf_to_datastateeffect( 
                                         visible_datagraphs, datatype_to_node,\
                                         factoryleaf_list, node_to_datatype, \
                                         conclusionlist ) )
+    except datastate_not_connected_error as err:
+        err.args = (*err.args, "couldnt create flowgraph, cause factoryleafs have broken datagraphs as input/output" )
+        raise err
     startdatastates = [ proc.inputdatastate for proc in all_processes ]
     visible_datagraphs.set_startgraphs( startdatastates )
     visible_datagraphs.extend_visible_datagraphs_fully( all_processes )
@@ -77,7 +81,13 @@ class factoryleaf_effect():
         tmpnodes = [ trans[ node ] for node in inputgraph.nodes() ]
         tmpedges = [ ( trans[e[0]], trans[e[1]], e[-1][EDGETYPE] ) \
                         for e in inputgraph.edges( data=True ) ]
-        self.inputdatastate = datastate( mother_flowgraph, tmpnodes, tmpedges )
+        try:
+            self.inputdatastate = datastate( mother_flowgraph, tmpnodes, \
+                                                                    tmpedges )
+        except datastate_not_connected_error as err:
+            err.args = (*err.args, f"factoryleaf {factoryleaf} hash broken "\
+                            "input/output- datagraph." )
+            raise err
 
         outputgraph = factoryleaf.poststatus
         tmpnodes = [ trans[ node ] for node in outputgraph.nodes() ]
@@ -464,9 +474,9 @@ class flowgraph( netx.MultiDiGraph ):
 
 
 
-def translate_factoryleaf_to_datastateeffect( givenflowgraph, datatype_to_node,\
-                                            factoryleaflist, \
-                                            node_to_datatype, conclusionlist ):
+def translate_factoryleaf_to_datastateeffect( givenflowgraph, \
+                                        datatype_to_node, factoryleaflist, \
+                                        node_to_datatype, conclusionlist ):
     """
     :type my_factory_leaf: .classes.factory_leaf
     :type datatype_to_node: dictionary
@@ -486,8 +496,12 @@ def translate_factoryleaf_to_datastateeffect( givenflowgraph, datatype_to_node,\
         # the node_collections 'datatype_to_node'
 
         for singletrans in possible_translations:
-            bubu = factoryleaf_effect( givenflowgraph, factleaf, singletrans, \
-                                        conclusionlist )
+            try:
+                bubu = factoryleaf_effect( givenflowgraph, factleaf, \
+                                        singletrans, conclusionlist )
+            except datastate_not_connected_error as err:
+                err.args = (*err.args, f"happened with factoryleaf {factleaf}")
+                raise err
             yield( bubu )
 
 

@@ -16,8 +16,19 @@ class datagraph( netx.MultiDiGraph ):
         else:
             super().add_node( node_id )
 
-    def add_edge( self, firstnode, secondnode, edgetype=None ):
+    def add_edge( self, firstnode, secondnode, edgetype = None ):
         if edgetype:
+            errargs = []
+            if self.nodes[firstnode][DATATYPE] != edgetype.source:
+                errargs.append( f"datatype {self.nodes[firstnode][DATATYPE]} "\
+                                +f"of source isnt {edgetype.source}"\
+                                +"as described by edgetype" )
+            if self.nodes[secondnode][DATATYPE] != edgetype.target:
+                errargs.append( f"datatype {self.nodes[secondnode][DATATYPE]} "\
+                                +f"of target isnt {edgetype.target}"\
+                                +"as described by edgetype" )
+            if errargs:
+                raise Exception( *errargs )
             super().add_edge( firstnode, secondnode, **{EDGETYPE: edgetype})
         else:
             super().add_edge( firstnode, secondnode )
@@ -26,7 +37,9 @@ class datagraph( netx.MultiDiGraph ):
 
     def copy( self ):
         if not self.test_valid():
-            raise Exception( "cant copy not valid datagraphs", self.nodes( data=True) )
+            raise Exception( "cant copy not valid datagraphs. check if "\
+                            +"every node and edge has a corresponding "\
+                            +"nodetype and edgetype", self.nodes( data=True) )
         newgraph = datagraph()
         for node, data in self.nodes( data=True ):
             newgraph.add_node( node, data[ DATATYPE ] )
@@ -41,8 +54,10 @@ class datagraph( netx.MultiDiGraph ):
             self.add_edge( source, target, myedgetype )
 
     def test_valid( self ):
-        chk1 = set(self.nodes()) == netx.get_node_attributes( self, DATATYPE ).keys()
-        chk2 = set(self.edges(keys=True)) == netx.get_edge_attributes( self, EDGETYPE ).keys()
+        chk1 = set(self.nodes()) \
+                == netx.get_node_attributes( self, DATATYPE ).keys()
+        chk2 = set(self.edges(keys=True)) \
+                == netx.get_edge_attributes( self, EDGETYPE ).keys()
         return chk1 and chk2
 
     def raise_exception_if_not_valid( self ):

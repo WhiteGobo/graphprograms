@@ -43,7 +43,10 @@ class factory_leaf():
         #                        +f"call: {call_args}" )
         if not (prestatus.test_valid() and poststatus.test_valid() ):
             raise Exception( prestatus.test_valid(), poststatus.test_valid() )
-        self.name = name
+        if name:
+            self.name = "{%s}" %(name)
+        else:
+            self.name = object.__repr__( self )
         self.prestatus = prestatus
         self.poststatus = poststatus
         self.call_function = call_function
@@ -54,6 +57,10 @@ class factory_leaf():
                 + "".join([ f"{nodename}: {nodetype}\n" \
                                 for nodename, nodetype in idtotype.items() ])
         self.__doc__ = inputdoc + extra_docs + str( call_function.__doc__ )
+
+    def __repr__( self ):
+        return self.name
+
     def __call__( self, **args ):
         return self.call_function( **args )
 

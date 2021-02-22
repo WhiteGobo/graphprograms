@@ -85,7 +85,9 @@ class myshower():
             tmpswitch.on_clicked( datastate_foo[ radiolabel ] )
             datastate_foo[radiolabel]( datastate_keys[ radiolabel ][0] )
             self.switch_datastates = tmpswitch #need to keep a reference
-
+            plt.sca( draw_axes )
+            plt.draw()
+            plt.sca( datastate_selector_axes )
             plt.draw()
         switch_flowgraphbuttons.on_clicked( myfoo )
 

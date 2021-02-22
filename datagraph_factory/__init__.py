@@ -50,4 +50,4 @@ from .datagraph import edgetype, datatype, datagraph
 from .processes import factory_leaf, conclusion_leaf
 from .find_process_path import create_flowgraph_for_datanodes
 from .linear_factorybranch import create_linear_function
-__all__=[ "edgetype", "datatype", "datagraph", "factory_leaf", "conclusion_leaf", "create_flowgraph_for_datanodes", "create_linear_function" ]
+__all__=[ "edgetype", "datatype", "datagraph", "factory_leaf", "conclusion_leaf", "create_flowgraph_for_datanodes", "create_linear_function", "visualize" ]
