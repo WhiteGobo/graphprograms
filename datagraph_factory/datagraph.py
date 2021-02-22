@@ -19,6 +19,12 @@ class datagraph( netx.MultiDiGraph ):
     def add_edge( self, firstnode, secondnode, edgetype = None ):
         if edgetype:
             errargs = []
+            if firstnode not in self.nodes:
+                errargs.append( f"node '{firstnode}' must be added before edge")
+            if secondnode not in self.nodes:
+                errargs.append( f"node'{secondnode}' must be added before edge")
+            if errargs:
+                raise Exception( *errargs )
             if self.nodes[firstnode][DATATYPE] != edgetype.source:
                 errargs.append( f"datatype {self.nodes[firstnode][DATATYPE]} "\
                                 +f"of source isnt {edgetype.source}"\
