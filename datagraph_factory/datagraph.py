@@ -1,4 +1,5 @@
 import networkx as netx
+weisfeiler_lehmann_graph_hash = netx.graph_hashing.weisfeiler_lehman_graph_hash
 from .constants import DATAGRAPH_DATATYPE as DATATYPE
 from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
 
@@ -85,6 +86,19 @@ class datagraph( netx.MultiDiGraph ):
 
     def __eq__( self, other ):
         return other in self._equivalent_list
+
+    def weisfeil_hash( self ):
+        replicate_graph = netx.MultiDiGraph()
+        replicate_graph.add_nodes_from( self.nodes() )
+        replicate_graph.add_edges_from( self.edges() )
+        tmp = netx.get_node_attributes( self, NODETYPE )
+        tmp = { node: repr(value) for node, value in tmp.items() }
+        netx.set_node_attributes( replicate_graph, tmp )
+        netx.get_edge_attributes( self, EDGETYPE )
+        tmp = { edge: repr(value) for edge, value in tmp.items() }
+        netx.set_edge_attributes( replicate_graph, tmp )
+        return int( weisfeiler_lehmann_graph_hash( replicate_graph, \
+                                                    EDGETYPE, NODETYPE ), 16 )
 
 
 edgetype_name = {}
