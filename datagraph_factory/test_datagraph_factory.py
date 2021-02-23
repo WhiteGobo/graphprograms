@@ -137,7 +137,7 @@ class test_graph( unittest.TestCase ):
         tmpgraph.add_node( "targetprop_negative", property_valuesign )
         tmpgraph.add_edge( "myinput", "mynegative", spawns_threetuple )
         tmpgraph.add_edge( "mynegative", "targetprop_negative", \
-                            property_isnegative )
+                            property_sumisnegative )
         outputgraph = tmpgraph.copy()
         del( tmpgraph )
 
@@ -145,8 +145,8 @@ class test_graph( unittest.TestCase ):
                                         used_factoryleafs, \
                                         (conclusion_sumisnegative_so_is_tuple,\
                                         conclusion_sumispositive_so_is_tuple))
-        #from .visualize import plot_flowgraph
-        #plot_flowgraph( myflowgraph )
+        from .visualize import plot_flowgraph
+        plot_flowgraph( myflowgraph )
 
         asd = [ q for q in myflowgraph.edges(keys=True,data=True) if q[0].nodes == set(('d4', 'd2', 'd5', 'd0')) and len(q[1].nodes)==6 ]
         #for i in myflowgraph.edges():
@@ -191,9 +191,11 @@ spawns_threetuple = edgetype( threetuple_origin, threetuple, \
                                 "spawned_threetuple", "" )
 property_tuplesum = edgetype( threetuple, tuplesum, "property_tuplesum", "" )
 
-property_isnegative = edgetype( threetuple, property_valuesign, "property_isnegative", "" )
+property_sumisnegative = edgetype( threetuple, property_valuesign, "property_isnegative", "" )
+property_isnegative = edgetype( tuplesum, property_valuesign, "property_isnegative", "" )
 
-property_ispositive = edgetype( threetuple, property_valuesign, "property_ispositive", "" )
+property_ispositive = edgetype( tuplesum, property_valuesign, "property_ispositive", "" )
+property_sumispositive = edgetype( threetuple, property_valuesign, "property_ispositive", "" )
 
 property_tata = edgetype( threetuple, property_valuesign, "property_tata", "" )
 
@@ -204,7 +206,7 @@ tmp.add_edge( "tuple", "sum", property_tuplesum )
 tmp.add_node( "isneg", property_valuesign )
 tmp.add_edge( "sum", "isneg", property_isnegative )
 prestatus = tmp.copy()
-tmp.add_edge( "tuple", "isneg", property_isnegative )
+tmp.add_edge( "tuple", "isneg", property_sumisnegative )
 poststatus = tmp.copy()
 del( tmp )
 conclusion_sumisnegative_so_is_tuple = conclusion_leaf( prestatus, poststatus )
@@ -218,7 +220,7 @@ tmp.add_edge( "tuple", "sum", property_tuplesum )
 tmp.add_node( "ispos", property_valuesign )
 tmp.add_edge( "sum", "ispos", property_ispositive )
 prestatus = tmp.copy()
-tmp.add_edge( "tuple", "ispos", property_ispositive )
+tmp.add_edge( "tuple", "ispos", property_sumispositive )
 poststatus = tmp.copy()
 del( tmp )
 conclusion_sumispositive_so_is_tuple = conclusion_leaf( prestatus, poststatus )
@@ -280,7 +282,7 @@ tmp.add_node( "q", threetuple_origin )
 tmp.add_node( "old", threetuple )
 tmp.add_edge( "q", "old", spawns_threetuple )
 tmp.add_node( "oldval", property_valuesign )
-tmp.add_edge( "old", "oldval", property_ispositive )
+tmp.add_edge( "old", "oldval", property_sumispositive )
 prestatus = tmp.copy()
 tmp.remove_node( "old" )
 tmp.remove_node( "oldval" )
