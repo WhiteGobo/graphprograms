@@ -1,4 +1,7 @@
 import networkx as netx
+#weisfeiler_lehmann_graph_hash = netx.graph_hashing.weisfeiler_lehman_graph_hash
+from extrasfornetworkx import weisfeiler_lehman_graph_hash_multidigraph \
+                                as weisfeiler_lehman_graph_hash
 from .processes import get_all_processes, get_datanode_maximal_occurence
 import itertools
 import math
@@ -297,6 +300,17 @@ class datastate():
 
     def __hash__( self ):
         return ( self.nodes, self.edges ).__hash__()
+
+    def weisfeil_hash( self ):
+        replicate_graph = netx.MultiDiGraph()
+        replicate_graph.add_nodes_from( self.nodes )
+        #tmpedges = { ((e0, e1), e2) for e0, e1, e2 in self.edges }
+        for e0, e1, data in self.edges:
+            replicate_graph.add_edge( e0, e1, eattr=repr(data) )
+        tmp = self.node_to_datatype
+        tmp = { node: repr(value) for node, value in tmp.items() }
+        netx.set_node_attributes( replicate_graph, tmp, "nattr" )
+        return int( weisfeiler_lehman_graph_hash( replicate_graph, node_attr="nattr", edge_attr="eattr" ), 16 )
 
     def issubset_to( self, other_datastate ):
         chk1 = all([ node in other_datastate.nodes for node in self.nodes ])

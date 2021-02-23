@@ -5,6 +5,7 @@ import io
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RadioButtons
+from collections import Counter
 import copy
 
 def myvis( myflowgraph ):
@@ -116,6 +117,20 @@ def create_single_datastate_switch_function( pics, key, datastate_axes ):
 
 
 def organise_subflowgraphs( single_subgraph, factoryleaf_to_color ):
+    old_to_compressed = {snod: snod.weisfeil_hash() \
+                            for snod in single_subgraph.nodes()}
+    anticompress = { value:key for key, value in old_to_compressed.items() }
+    otoc = old_to_compressed
+    edges = set( (otoc[src], otoc[trg], data["edgetype"].factoryleaf) \
+                for src, trg, k, data \
+                in single_subgraph.edges( data=True, keys=True ) )
+    single_subgraph = netx.MultiDiGraph()
+    single_subgraph.add_nodes_from( anticompress.values() )
+    for a, b, c in edges:
+        single_subgraph.add_edge( anticompress[a], anticompress[b], \
+                                    edgetype = c)
+
+    
     datastate_dict = {}
     graph_picture = None
 
@@ -146,7 +161,7 @@ def datastate_to_picture( mydatastate ):
 
 def _set_edgecolor( netxgraph, factory_leaf_to_color ):
     input_data = netx.get_edge_attributes( netxgraph, "edgetype" )
-    input_data = { key: value.factoryleaf for key, value in input_data.items()}
+    input_data = { key: value for key, value in input_data.items()}
     color_dict = { key: factory_leaf_to_color[ value ] \
                     for key, value in input_data.items() }
     netx.set_edge_attributes(netxgraph, color_dict, "color" )
