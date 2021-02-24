@@ -209,11 +209,15 @@ class factoryleaf_effect():
             foo_input = { factkey: mother_flowgraph.data[key] \
                             for factkey, key in inputdatatrans }
 
-            foo_output = transition_function( **foo_input )
+            try:
+                foo_output = transition_function( **foo_input )
+            except TypeError as err:
+                err.args = ( *err.args, "happened at {self.factoryleaf}" )
+                raise err
             try:
                 for factkey, single_output in foo_output.items():
                     mother_flowgraph.data[ mytrans[ factkey ] ] = single_output
-            except KeyError as err:
+            except AttributeError as err:
                 err.args = (*err.args, f"{self.factoryleaf} has given wrong "\
                             +"output", f"got: {foo_output}")
                 raise err
