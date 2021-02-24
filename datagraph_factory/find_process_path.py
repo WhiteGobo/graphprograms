@@ -212,7 +212,7 @@ class factoryleaf_effect():
             try:
                 foo_output = transition_function( **foo_input )
             except TypeError as err:
-                err.args = ( *err.args, "happened at {self.factoryleaf}" )
+                err.args = ( *err.args, f"happened at {self.factoryleaf}" )
                 raise err
             try:
                 for factkey, single_output in foo_output.items():
