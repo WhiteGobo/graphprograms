@@ -22,7 +22,6 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
     :type flowgraph: .find_process_path.flowgraph
     """
     node_to_datatype = flowgraph.node_to_datatype
-
     try:
         translators = flowgraph.translator( inputgraph, outputgraph )
     except KeyError as err:
@@ -37,18 +36,16 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
                         +"flowgraph.nodes()" )
         raise err
     inputtranslator = translators[0]
-    
     try:
         current_datastate = datastate_from_graph( flowgraph, \
                                 netx.relabel_nodes(inputgraph, inputtranslator))
     except datastate_not_connected_error as err:
         err.args = ( *err.args, "ingraph must be connected" )
         raise err
-
     try:
-        target_datastates = { datastate_from_graph( flowgraph, \
-                                netx.relabel_nodes(outputgraph, trans)): \
-                                trans \
+        create_datastate = lambda trans: datastate_from_graph( flowgraph, \
+                                netx.relabel_nodes(outputgraph, trans))
+        target_datastates = { create_datastate( trans ): trans \
                                 for trans in translators }
     except datastate_not_connected_error as err:
         err.args = ( *err.args, "outputgraph must be connected" )
@@ -59,7 +56,6 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
                                             flowcontroller, current_datastate )
     _get_inputoutputgraph = lambda: (inputgraph, outputgraph)
     my_linear_function = factory_leaf( _get_inputoutputgraph, call_function )
-
     return my_linear_function
 
 
@@ -72,9 +68,7 @@ def _create_call_function( inputgraph, inputtranslator, \
         mydatacontainer = { inputtranslator[ key ]:value \
                             for key, value in args.items() }
         flowcontroller.myflowgraph.datastate = current_datastate
-
         flowcontroller.data = mydatacontainer
-        
         try:
             while flowcontroller.next_step():
                 pass
