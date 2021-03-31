@@ -27,8 +27,8 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
     except KeyError as err:
         err.args = (*err.args, "cant create function for the purpose of "\
                         "creating the outputgraph from the inputgraph."\
-                        " Please adjust those graphs or given flowgraph" )
-        err.args = (*err.args, f"input: {inputgraph.nodes(data=True)};;;; "\
+                        " Please adjust those graphs or given flowgraph", \
+                        f"input: {inputgraph.nodes(data=True)};;;; "\
                         +f";;;;{inputgraph.edges(data=True)}, output: "\
                         +f"{outputgraph.nodes(data=True)};;;; "\
                         +f"{outputgraph.edges(data=True)}",\
@@ -137,10 +137,6 @@ class linearflowcontroller():
         currentstate = self.myflowgraph.datastate
         mydatacontainer = self.data
         return mydatacontainer
-
-
-
-
 
     def add_failstate_exception( self, failstates, processlib ):
         def raiseFailstateError():
