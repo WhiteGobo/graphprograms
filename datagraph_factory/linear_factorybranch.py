@@ -29,16 +29,12 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
         err.args = (*err.args, "cant create function for the purpose of "\
                         "creating the outputgraph from the inputgraph."\
                         " Please adjust those graphs or given flowgraph" )
-        if verbosity > 0:
-            err.args = (*err.args, f"input: {inputgraph.nodes(data=True)};;;; "\
+        err.args = (*err.args, f"input: {inputgraph.nodes(data=True)};;;; "\
                         +f";;;;{inputgraph.edges(data=True)}, output: "\
                         +f"{outputgraph.nodes(data=True)};;;; "\
                         +f"{outputgraph.edges(data=True)}",\
                         "for supported graphs by flowgraph, please use "\
                         +"flowgraph.nodes()" )
-        else:
-            err.args = (*err.args, "for more information "\
-                        +"create_linear_function( ..., verbosity = 1 )")
         raise err
     inputtranslator = translators[0]
     
@@ -59,15 +55,16 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
         raise err
 
     flowcontroller = linearflowcontroller( flowgraph, target_datastates )
-
-    call_function = _create_call_function( inputgraph, inputtranslator, flowcontroller, current_datastate )
-
+    call_function = _create_call_function( inputgraph, inputtranslator, \
+                                            flowcontroller, current_datastate )
     _get_inputoutputgraph = lambda: (inputgraph, outputgraph)
     my_linear_function = factory_leaf( _get_inputoutputgraph, call_function )
 
     return my_linear_function
 
-def _create_call_function( inputgraph, inputtranslator, flowcontroller, current_datastate ):
+
+def _create_call_function( inputgraph, inputtranslator, \
+                            flowcontroller, current_datastate ):
     def call_function( **args ):
         if set( inputgraph.nodes() ) != args.keys():
             raise KeyError( f"wrong input needed: {inputgraph.nodes()} "\
