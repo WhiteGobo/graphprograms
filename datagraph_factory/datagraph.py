@@ -1,7 +1,9 @@
 import networkx as netx
 weisfeiler_lehmann_graph_hash = netx.graph_hashing.weisfeiler_lehman_graph_hash
-from .constants import DATAGRAPH_DATATYPE as DATATYPE
-from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
+from .constants import \
+        DATAGRAPH_DATATYPE as DATATYPE,\
+        DATAGRAPH_EDGETYPE as EDGETYPE, \
+        DATAGRAPH_CONTAINED_DATA as CONTAINED_DATA
 
 class datagraph( netx.MultiDiGraph ):
     """
@@ -10,6 +12,23 @@ class datagraph( netx.MultiDiGraph ):
     def __init__( self, *args, **argv ):
         super().__init__( *args, **argv )
         self._equivalent_list = set( self )
+
+    def __setitem__( self, key, item ):
+        try:
+            self.nodes[key][ CONTAINED_DATA ] = item
+        except KeyError as err:
+            raise KeyError( "Item assignment only valid for existing nodes" )\
+                    from err
+
+    def __getitem__( self, key ):
+        try:
+            self.nodes[key][ CONTAINED_DATA ] = item
+        except KeyError as err:
+            if key in self.nodes():
+                raise KeyError( f"no data found for node {key}" ) from err
+            else:
+                raise KeyError( "Item fetching only valid for existing nodes" )\
+                    from err
 
     def add_node( self, node_id, datatype=None ):
         if datatype:
@@ -26,16 +45,17 @@ class datagraph( netx.MultiDiGraph ):
                 errargs.append( f"node'{secondnode}' must be added before edge")
             if errargs:
                 raise Exception( *errargs )
-            if self.nodes[firstnode][DATATYPE] != edgetype.source:
-                errargs.append( f"datatype {self.nodes[firstnode][DATATYPE]} "\
-                                +f"of source isnt {edgetype.source}"\
-                                +"as described by edgetype" )
-            if self.nodes[secondnode][DATATYPE] != edgetype.target:
-                errargs.append( f"datatype {self.nodes[secondnode][DATATYPE]} "\
-                                +f"of target isnt {edgetype.target}"\
-                                +"as described by edgetype" )
-            if errargs:
-                raise Exception( *errargs )
+
+            source_target_pairs = edgetype.get_source_target_pair_function()
+            given_type_pair = tuple((self.nodes[firstnode][DATATYPE], \
+                                    self.nodes[secondnode][DATATYPE]))
+            if given_type_pair not in source_target_pairs:
+                raise Exception(("datatypes of source (%s) and target (%s) "\
+                                +"isnt compatible to typepairlist (%s) as "\
+                                +"described by edgetype") \
+                                %(self.nodes[firstnode][DATATYPE], \
+                                self.nodes[secondnode][DATATYPE], \
+                                source_target_pairs))
             super().add_edge( firstnode, secondnode, **{EDGETYPE: edgetype})
         else:
             super().add_edge( firstnode, secondnode )
@@ -108,16 +128,43 @@ datatype_name = {}
 edgetype = list()
 
 class datatype():
-    """ This is the base class """
-    pass
+    """
+    This class is for saving data of the datagraph. Every data in datagraph
+    is contained in node of childrenclasses of datatype:
+    eg:
+    class text( datatype ):
+        def __init__( self, mytext ):
+            self.text = mytext
+    You can access via mydatagraph.nodes["nodename"].text
+    Within a proccess an attribute will be given containing you object:
+    def myprocess( nodename ):
+        print( nodename.text )
+
+    When you wan code to be save- and loadable create the functions 
+    save_as( self, pathtotargetfile ) and load_from( self, pathtofile )
+    """
+    def _check_saveability( self ):
+        try:
+            self.save_as
+            self.load_from
+            return True
+        except AttributeError:
+            return False
+    saveable = property( fget=_check_saveability )
 
 
 class edgetype():
-    def __init__( self, source, target, name, doc ):
-        self.source = source
-        self.target = target
+    def __init__( self, get_source_target_pair_function, name, doc ):
         self.__doc__ = doc
         self.__name__ = name
+        self.get_source_target_pair_function = get_source_target_pair_function
+
+    def get_source_target_pair_function( self ):
+        return get_source_target_pair_function()
 
     def __repr__( self ):
         return self.__name__
+        return object.__repr__( self )
+    def __str__( self ):
+        return self.__name__
+

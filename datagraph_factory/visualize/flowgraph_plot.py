@@ -159,12 +159,14 @@ def datastate_to_picture( mydatastate ):
     mypic = mpimg.imread( filelikebytes )
     return mypic
 
+
 def _set_edgecolor( netxgraph, factory_leaf_to_color ):
     input_data = netx.get_edge_attributes( netxgraph, "edgetype" )
     input_data = { key: value for key, value in input_data.items()}
     color_dict = { key: factory_leaf_to_color[ value ] \
                     for key, value in input_data.items() }
     netx.set_edge_attributes(netxgraph, color_dict, "color" )
+
 
 def subflowgraph_to_picture( mysubflowgraph, factoryleaf_to_color ):
     #mapping = lambda x: repr( x )

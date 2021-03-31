@@ -1,21 +1,40 @@
 import copy
 import networkx as netx
-from .processes import factory_leaf
-from .find_process_path import datastate_from_graph
-from .find_process_path import datastate
-from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
+from ..processes import factory_leaf
+from ..find_process_path import datastate_from_graph
+from ..find_process_path import datastate
+from ..constants import DATAGRAPH_EDGETYPE as EDGETYPE
 import math
 import itertools
-from .find_process_path import datastate_not_connected_error
+from ..find_process_path import datastate_not_connected_error
+from ..linear_factorybranch import FailstateReached, NoPathToOutput, \
+                                DataRescueException
 
-class FailstateReached( Exception ):
-    pass
-class NoPathToOutput( Exception ):
-    pass
-class DataRescueException( Exception ):
-    def __init__( self, mydatagraph ):
-        super().__init__()
-        self.datagraph = mydatagraph
+from ..constants import DATAGRAPH_CONTAINED_DATA as CONTAINED_DATA
+
+def complete_datagraph( flowgraph, wholegraph ):
+    nodes_with_data = find_filled_datanodes( wholegraph )
+    nodes_to_produce = set( wholegraph.nodes() ).difference( nodes_with_data )
+    minimal_inputgraphs_for_creation = find_minimal_inputgraphs_for_creation( \
+                                        flowgraph, wholegraph, \
+                                        nodes_to_produce, nodes_with_data )
+
+
+def find_minimal_inputgraphs_for_creation( flowgraph, wholegraph, \
+                                        nodes_to_produce ):
+    for target_node in nodes_to_produce:
+        state_nodes = flowgraph.translator[ target_node ]
+        for state_node in state_nodes:
+            target_states  = [ node for node in flowgraph.nodes() \
+                                if state_node in node ]
+            for endstate in target_states:
+                startstates = flowgraph.find_minimalestate( endstate )
+
+
+def find_filled_datanodes( wholegraph ):
+    nodes_with_data = set( node for node, data in wholegraph.nodes(data=True) \
+                    if CONTAINED_DATA in data.keys() )
+    return nodes_with_data
 
 def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
     """
@@ -28,17 +47,12 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
     except KeyError as err:
         err.args = (*err.args, "cant create function for the purpose of "\
                         "creating the outputgraph from the inputgraph."\
-                        " Please adjust those graphs or given flowgraph" )
-        if verbosity > 0:
-            err.args = (*err.args, f"input: {inputgraph.nodes(data=True)};;;; "\
+                        " Please adjust those graphs or given flowgraph",\
+                        f"input: {inputgraph.nodes(data=True)};;;; "\
                         +f";;;;{inputgraph.edges(data=True)}, output: "\
                         +f"{outputgraph.nodes(data=True)};;;; "\
-                        +f"{outputgraph.edges(data=True)}",\
-                        "for supported graphs by flowgraph, please use "\
-                        +"flowgraph.nodes()" )
-        else:
-            err.args = (*err.args, "for more information "\
-                        +"create_linear_function( ..., verbosity = 1 )")
+                        +f"{outputgraph.edges(data=True)} for supported "\
+                        +"graphs by flowgraph, please use flowgraph.nodes()" )
         raise err
     inputtranslator = translators[0]
     
@@ -57,17 +71,16 @@ def create_linear_function( flowgraph, inputgraph, outputgraph, verbosity=0 ):
     except datastate_not_connected_error as err:
         err.args = ( *err.args, "outputgraph must be connected" )
         raise err
-
     flowcontroller = linearflowcontroller( flowgraph, target_datastates )
-
-    call_function = _create_call_function( inputgraph, inputtranslator, flowcontroller, current_datastate )
-
-    _get_inputoutputgraph = lambda: (inputgraph, outputgraph)
+    call_function = _create_call_function( inputgraph, inputtranslator, \
+                                        flowcontroller, current_datastate )
+    _get_inputoutputgraph = lambda: ( inputgraph, outputgraph )
     my_linear_function = factory_leaf( _get_inputoutputgraph, call_function )
-
     return my_linear_function
 
-def _create_call_function( inputgraph, inputtranslator, flowcontroller, current_datastate ):
+
+def _create_call_function( inputgraph, inputtranslator, flowcontroller, \
+                                                        current_datastate ):
     def call_function( **args ):
         if set( inputgraph.nodes() ) != args.keys():
             raise KeyError( f"wrong input needed: {inputgraph.nodes()} "\
@@ -75,20 +88,16 @@ def _create_call_function( inputgraph, inputtranslator, flowcontroller, current_
         mydatacontainer = { inputtranslator[ key ]:value \
                             for key, value in args.items() }
         flowcontroller.myflowgraph.datastate = current_datastate
-
         flowcontroller.data = mydatacontainer
-        
         try:
             while flowcontroller.next_step():
                 pass
         except Exception as err:
             mydata = flowcontroller.get_all_data()
             raise DataRescueException( mydata ) from err
-
         return flowcontroller.get_output_data()
 
         mydatacontainer = flowcontroller.data
-
         return_translator = \
                 { \
                 translator[ value ] : value \
@@ -97,9 +106,9 @@ def _create_call_function( inputgraph, inputtranslator, flowcontroller, current_
                 }
         return { value: mydatacontainer[ key ] \
                 for key, value in return_translator.items() }
+
     call_function.__doc__ = "\n\tinputvariables are %s\n" \
                                 %( inputgraph.nodes(data=True) )
-
     return call_function
 
 

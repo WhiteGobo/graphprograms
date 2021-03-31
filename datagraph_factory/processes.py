@@ -14,13 +14,37 @@ datanode_output_to_process = {}
 possible_edges_between_types = {}
 
 class conclusion_leaf():
-    def __init__( self, prestatus, poststatus ):
-        if set( prestatus.nodes() ) != set( poststatus.nodes() ):
+    def __init__( self, generate_datagraphs ):
+        self._generate_datagraphs = generate_datagraphs
+        #prestatus, poststatus = generate_datagraphs()
+        #self.prestatus = prestatus
+        #self.poststatus = poststatus
+    def _generate_pre_and_poststatus( self ):
+        pre, post = self._generate_datagraphs()
+        self._prestatus = pre
+        self._poststatus = post
+        if set( pre.nodes() ) != set( post.nodes() ):
             raise KeyError( "conclusions only works to add single edges",
-                            "prestatus.nodes: {set(prestatus.nodes())}", \
-                            "poststatus.nodes: {set(poststatus.nodes())}")
-        self.prestatus = prestatus
-        self.poststatus = poststatus
+                            "prestatus.nodes: {set(pre.nodes())}", \
+                            "poststatus.nodes: {set(post.nodes())}")
+    def _generate_prestatus( self ):
+        try:
+            return self._prestatus
+        except AttributeError:
+            pass
+        self._generate_pre_and_poststatus()
+        return self._prestatus
+    prestatus = property( fget=_generate_prestatus )
+
+    def _generate_poststatus( self ):
+        try:
+            return self._poststatus
+        except AttributeError:
+            pass
+        self._generate_pre_and_poststatus()
+        return self._poststatus
+    poststatus = property( fget=_generate_poststatus )
+
 
 
 
@@ -31,9 +55,11 @@ class factory_leaf():
     #prestatus = None # type == datagraph
     #poststatus = None # type == datagraph
     #cost = None
-    def __init__( self, prestatus, poststatus, \
+    def __init__( self, generate_datagraphs, \
                                                 call_function=pass_function, \
                                                 extra_docs="", cost=1, name=""):
+        #prestatus, poststatus = generate_datagraphs()
+        self._generate_datagraphs = generate_datagraphs
         #if call_function != pass_function:
         #    call_args = inspect.signature(call_function).parameters.keys()
         #    if set( prestatus.nodes() ) != call_args:
@@ -41,22 +67,44 @@ class factory_leaf():
         #                        +"call_function has as arguments",\
         #                        f"prestatus: {prestatus.nodes()}; " \
         #                        +f"call: {call_args}" )
-        if not (prestatus.test_valid() and poststatus.test_valid() ):
-            raise Exception( prestatus.test_valid(), poststatus.test_valid() )
+        #if not (prestatus.test_valid() and poststatus.test_valid() ):
+        #    raise Exception( prestatus.test_valid(), poststatus.test_valid() )
         if name:
             self.name = "{%s}" %(name)
         else:
             self.name = object.__repr__( self )
-        self.prestatus = prestatus
-        self.poststatus = poststatus
+        #self.prestatus = prestatus
+        #self.poststatus = poststatus
         self.call_function = call_function
         self.cost = cost
 
-        idtotype = netx.get_node_attributes( prestatus, DATATYPE )
-        inputdoc = "input:\n"\
-                + "".join([ f"{nodename}: {nodetype}\n" \
-                                for nodename, nodetype in idtotype.items() ])
-        self.__doc__ = inputdoc + extra_docs + str( call_function.__doc__ )
+        #idtotype = netx.get_node_attributes( prestatus, DATATYPE )
+        #inputdoc = "input:\n"\
+        #        + "".join([ f"{nodename}: {nodetype}\n" \
+        #                        for nodename, nodetype in idtotype.items() ])
+        #self.__doc__ = inputdoc + extra_docs + str( call_function.__doc__ )
+
+    def _generate_pre_and_poststatus( self ):
+        pre, post = self._generate_datagraphs()
+        self._prestatus = pre
+        self._poststatus = post
+    def _generate_prestatus( self ):
+        try:
+            return self._prestatus
+        except AttributeError:
+            pass
+        self._generate_pre_and_poststatus()
+        return self._prestatus
+    prestatus = property( fget=_generate_prestatus )
+
+    def _generate_poststatus( self ):
+        try:
+            return self._poststatus
+        except AttributeError:
+            pass
+        self._generate_pre_and_poststatus()
+        return self._poststatus
+    poststatus = property( fget=_generate_poststatus )
 
     def __repr__( self ):
         return self.name
@@ -122,8 +170,13 @@ def _dictionaries_have_contradiction( dict1, dict2 ):
 def get_datanode_maximal_occurence( processlist ):
     maxoccur = Counter()
     for process in processlist:
+        try:
+            process.prestatus, process.poststatus
+        except AttributeError as err:
+            raise TypeError( "given processlist didnt contain "\
+                                "factory_leaf-like elements" ) from err
         inputdict = netx.get_node_attributes( process.prestatus, DATATYPE )
-        outputdict = netx.get_node_attributes( process.poststatus, DATATYPE )
+        outputdict = netx.get_node_attributes( process.poststatus, DATATYPE)
         if _dictionaries_have_contradiction( inputdict, outputdict ):
             raise Exception( "prestatus and poststatus of "\
                     +f"{process.__qualname__} contradict oneanother")
@@ -137,6 +190,8 @@ def get_datanode_maximal_occurence( processlist ):
                         + f"properly declared. Outputnodes lacked property"\
                         +f" 'datagraph_factory.constants.DATAGRAPH_DATATYPE'.",\
                         f"found nodes: {outputgraph.nodes()}" )
+        inputdict = netx.get_node_attributes( process.prestatus, DATATYPE )
+        outputdict = netx.get_node_attributes( process.poststatus, DATATYPE)
         wholedict = inputdict
         wholedict.update( outputdict )
         occur = Counter( wholedict.values() )
