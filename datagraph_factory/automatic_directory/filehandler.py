@@ -8,8 +8,8 @@ from ..constants import \
         DATAGRAPH_CONTAINED_DATA as CONTAINED_DATA, \
         DATAGRAPH_BLUEPRINT_SAVENAME as SAVENAME
 
-def save_graph( mydatagraph, directory_path, used_modules, createnew=False ):
-    _check_and_create_save_graph( mydatagraph, directory_path, createnew )
+def save_graph( mydatagraph, directory_path, used_modules, forcenew=False ):
+    _check_and_create_save_graph( mydatagraph, directory_path, forcenew )
     #_check_datagraph( mydatagraph )
     datatype_to_name, edgetype_to_name = _create_dict_type_to_name(used_modules)
     savegraph = _create_datagraph_blueprint( mydatagraph, datatype_to_name, \
