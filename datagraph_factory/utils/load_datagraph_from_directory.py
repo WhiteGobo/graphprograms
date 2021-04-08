@@ -1,5 +1,5 @@
-BLUEPRINT_FILENAME = "asdf.mime"
 from ..datagraph import DATATYPE
+from ..constants import BLUEPRINT_FILENAME
 
 def load_datagraph_from_directory( folderpath ):
     blueprint_file = os.path.join( folderpath, BLUEPRINT_FILENAME )
