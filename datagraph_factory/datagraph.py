@@ -22,7 +22,7 @@ class datagraph( netx.MultiDiGraph ):
 
     def __getitem__( self, key ):
         try:
-            item = self.nodes[key][ CONTAINED_DATA ]
+            return self.nodes[key][ CONTAINED_DATA ]
         except KeyError as err:
             if key in self.nodes():
                 raise KeyError( f"no data found for node {key}" ) from err
