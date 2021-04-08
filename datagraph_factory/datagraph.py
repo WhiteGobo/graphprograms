@@ -105,7 +105,15 @@ class datagraph( netx.MultiDiGraph ):
         self._equivalent_list = set( datagraph_list ).union( set(self) )
 
     def __eq__( self, other ):
+        raise Exception()
         return other in self._equivalent_list
+
+    def same_structure_as( self, otherdatagraph ):
+        """
+        controls if this datagraph and another datagraph share the same
+        graph in regard of datatypes and edgetypes
+        """
+        return self.weisfeil_hash() == otherdatagraph.weisfeil_hash()
 
     def weisfeil_hash( self ):
         replicate_graph = netx.MultiDiGraph()

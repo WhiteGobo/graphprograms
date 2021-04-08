@@ -51,7 +51,7 @@ class test_graph( unittest.TestCase ):
         except AssertionError as err:
             err.args = (*err.args, "factoryleaf didnt return anything useful",\
                         f"returned data to nodes {asd.keys()}, should had "\
-                        +"returned only to 'myinput' and 'targetprop_negative'")
+                        +"returned only to 'myinput' and'targetprop_negative'")
         try:
             self.assertTrue( "targetprop_negative" in asd )
             self.assertEqual( len( asd ), 3 )
@@ -66,7 +66,7 @@ class test_graph( unittest.TestCase ):
                             inputgraph, outputgraph_without_edge, \
                             verbosity =1 )
         try:
-            self.assertRaises( find_process_path.datastate_not_connected_error,\
+            self.assertRaises(find_process_path.datastate_not_connected_error,\
                                 testfoo )
         except AssertionError as err:
             err.args = (*err.args, "This function should have thrown an error"
@@ -124,10 +124,6 @@ class test_graph( unittest.TestCase ):
                 sumup, check_isnegative, \
                 threetuple_spawning_from_origin, \
                 threetuple_decrease_ifpositive )
-        #used_factoryleafs = ( \
-        #        #sumup, check_isnegative, \
-        #        threetuple_decrease_ifpositive, \
-        #        )
         tmpgraph = datagraph()
         tmpgraph.add_node( "myinput", threetuple_origin )
         inputgraph = tmpgraph.copy()
@@ -146,7 +142,9 @@ class test_graph( unittest.TestCase ):
         #from .visualize import plot_flowgraph
         #plot_flowgraph( myflowgraph )
 
-        asd = [ q for q in myflowgraph.edges(keys=True,data=True) if q[0].nodes == set(('d4', 'd2', 'd5', 'd0')) and len(q[1].nodes)==6 ]
+        asd = [ q for q in myflowgraph.edges(keys=True,data=True) \
+                    if q[0].nodes == set(('d4', 'd2', 'd5', 'd0')) \
+                    and len(q[1].nodes)==6 ]
         #for i in myflowgraph.edges():
         for a,b, key, data in asd:
             print( data )
@@ -162,6 +160,24 @@ class test_graph( unittest.TestCase ):
         asd = myfoo( myinput=threetuple_origin( a,b,c ) )
         outputtuple = asd["mynegative"]
         self.assertEqual( -outputtuple.a, outputtuple.b + outputtuple.c + 1)
+
+    def test_saving_and_loading( self ):
+        import tempfile
+        from . import test_datagraph_factory as mymodule
+        used_modules = [ mymodule ]
+        tmpgraph = datagraph()
+        tmpgraph.add_node( "myinput", threetuple_origin )
+        from .automatic_directory.filehandler import save_graph, load_graph
+        with tempfile.TemporaryDirectory() as tmpdirectory:
+            save_graph( tmpgraph, tmpdirectory, used_modules )
+            print( tmpdirectory )
+            copy_tmpgraph = load_graph( tmpdirectory, used_modules )
+            print( tmpgraph.nodes( data=True) )
+            print( copy_tmpgraph.nodes( data=True) )
+
+
+
+
 
 
 

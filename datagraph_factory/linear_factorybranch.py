@@ -75,11 +75,9 @@ def _create_call_function( inputgraph, inputtranslator, \
         except Exception as err:
             mydata = flowcontroller.get_all_data()
             raise DataRescueException( mydata ) from err
-
         return flowcontroller.get_output_data()
 
         mydatacontainer = flowcontroller.data
-
         return_translator = \
                 { \
                 translator[ value ] : value \
@@ -90,7 +88,6 @@ def _create_call_function( inputgraph, inputtranslator, \
                 for key, value in return_translator.items() }
     call_function.__doc__ = "\n\tinputvariables are %s\n" \
                                 %( inputgraph.nodes(data=True) )
-
     return call_function
 
 
@@ -218,4 +215,4 @@ class linearflowcontroller():
                     for source, target_dict in all_paths \
                     if source not in possible_datastate_at_output \
                     and source not in failstates }
-        return mypaths, possible_datastate_at_output_with_translation, failstates
+        return mypaths, possible_datastate_at_output_with_translation,failstates

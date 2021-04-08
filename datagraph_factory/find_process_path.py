@@ -495,6 +495,52 @@ class flowgraph( netx.MultiDiGraph ):
                                     .difference( oldnodes )
         return
 
+    def get_minimal_states_to_construct_datastate( self, datastate ):
+        raise Exception()
+        return list()
+
+    def maximal_datastates( self ):
+        nodenumber = lambda mydatastate: len( mydatastate.nodes )
+        alldatastates = sorted( self.nodes(), key = nodenumber )
+        tmpset_datastates = set( alldatastates )
+        for i, compdatastate in enumerate( alldatastates ):
+            for seconddatastate in alldatastates[ i+1: ]:
+                if compdatastate.issubset_to( seconddatastate ):
+                    tmpset_datastates.remove( compdatastate )
+                    break
+        return tmpset_datastates
+
+    def find_possible_compatible_maximal_partgraph( self, wholegraph ):
+        maximal_datastates = self.maximal_datastates()
+        end_datastates_with_graph = list()
+        for test_datastate in maximal_datastates:
+            single_datatype_translation = test_datastate.possible_translations
+            i = 0
+            remaining_edges = list( test_datastate.edges )
+
+            open_datastate_with_graph = list()
+            for node in test_datastate.nodes:
+                open_datastate_with_graph.append({ \
+                                            node: single_datatype[ node ] }, \
+                                            set( test_datastate.edges ) )
+            while len( open_datastate_with_graph ) != 0:
+                new_open_datastate_with_graph = list()
+                for pair in open_datastate_with_graph:
+                    next_openstates_with_graph \
+                            = _add_one_edge_from_datastate_to_datagraph( *pair )
+                    if len( next_openstates_with_graph ) == 0:
+                        end_datastates_with_graph.append( pair )
+                    else:
+                        new_open_datastate_with_graph.extend( \
+                                                next_openstates_with_graph )
+                open_datastate_with_graph = new_open_datastate_with_graph
+        return end_datastates_with_graph
+
+
+def _add_one_edge_from_datastate_to_datagraph( current_datastate, \
+                                                current_datagraph, wholegraph ):
+    for e in current_datastate.edges:
+        pass
 
 
 def translate_factoryleaf_to_datastateeffect( givenflowgraph, \
