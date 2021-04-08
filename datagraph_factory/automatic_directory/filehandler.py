@@ -1,12 +1,14 @@
 import os.path
 import os
+import inspect
 import networkx as netx
 from .. import utils
+from ..datagraph import datagraph, datatype, edgetype
 from ..constants import \
         DATAGRAPH_DATATYPE as DATATYPE, \
         DATAGRAPH_EDGETYPE as EDGETYPE, \
         DATAGRAPH_CONTAINED_DATA as CONTAINED_DATA, \
-        DATAGRAPH_BLUEPRINT_SAVENAME as SAVENAME
+        BLUEPRINT_FILENAME as SAVENAME
 
 def save_graph( mydatagraph, directory_path, used_modules, forcenew=False ):
     _check_and_create_save_graph( mydatagraph, directory_path, forcenew )
@@ -14,7 +16,7 @@ def save_graph( mydatagraph, directory_path, used_modules, forcenew=False ):
     datatype_to_name, edgetype_to_name = _create_dict_type_to_name(used_modules)
     savegraph = _create_datagraph_blueprint( mydatagraph, datatype_to_name, \
                                                         edgetype_to_name )
-    rootname = ".".join( (DATAGRAPH_BLUEPRINT_SAVENAME, "xml") )
+    rootname = ".".join( (SAVENAME, "xml") )
     netx.write_graphml( savegraph, os.path.join( directory_path, rootname ))
 
     for node, data in mydatagraph.nodes( data=True ):
@@ -27,18 +29,20 @@ def save_graph( mydatagraph, directory_path, used_modules, forcenew=False ):
 
 def load_graph( directory_path, used_modules ):
     rootname = ".".join( (SAVENAME, "xml") )
-    netx.read_graphml( savegraph, os.path.join( directory_path, rootname ))
-    name_to_datatype, name_to_edgetype = _create_dict_name_to_type(used_modules)
-    mydatagraph = _load_datagraph_from_blueprint( savegraph, name_to_datatype, \
+    savegraph = netx.read_graphml( os.path.join( directory_path, rootname ),\
+                                        force_multigraph=True )
+    name_to_datatype, name_to_edgetype =_create_dict_name_to_type(used_modules)
+    mydatagraph = _load_datagraph_from_blueprint( savegraph, name_to_datatype,\
                                                             name_to_edgetype )
     for node, data in mydatagraph.nodes( data=True ):
         if data[ DATATYPE ].saveable:
+            tmpfilepath = os.path.join( directory_path, node )
             try:
-                tmpfilepath = os.path.join( directory_path, node )
                 data[ CONTAINED_DATA ] = data[ DATATYPE ]\
                                         .load_from( None, tmpfilepath )
-            except KeyError:
+            except AttributeError: #g isnt there
                 pass
+    return mydatagraph
 
 
 def _create_datagraph_blueprint( mydatagraph, datatype_to_name, \
@@ -54,10 +58,10 @@ def _create_datagraph_blueprint( mydatagraph, datatype_to_name, \
 
 def _load_datagraph_from_blueprint( savegraph, name_to_datatype, \
                                                 name_to_edgetype ):
-    if type( savegraph ) != netx.MultiDiGraph():
+    if type( savegraph ) != netx.MultiDiGraph:
         raise Exception( "Error in program. "\
                         "savegraph must be 'networkx.MultiDiGraph'" )
-    mydatagraph = datagraph_factory.datagraph()
+    mydatagraph = datagraph()
     for nodename, data in savegraph.nodes( data=True ):
         tmpdatatype = name_to_datatype[ data[ DATATYPE ] ]
         mydatagraph.add_node( nodename, tmpdatatype )
@@ -73,7 +77,7 @@ def _create_dict_name_to_type( used_modules ):
     for mod in used_modules:
         if not inspect.ismodule( mod ):
             raise TypeError( mod, "'used_modules' must be list of modules" )
-    mydatatypes, myedgetypes
+    mydatatypes, myedgetypes = dict(), dict()
     for mod in used_modules:
         tmpdatatypes, tmpedgetypes, fact_leafs, conc_leafs \
                 = utils.get_all_datatypes( mod )
