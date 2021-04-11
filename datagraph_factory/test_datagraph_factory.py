@@ -11,6 +11,10 @@ from .linear_factorybranch import create_linear_function
 from .linear_factorybranch import FailstateReached
 from .linear_factorybranch import DataRescueException
 
+import csv
+import tempfile
+from . import test_datagraph_factory as mymodule
+from .automatic_directory.create_program_from_datagraph import complete_datagraph
 
 class test_graph( unittest.TestCase ):
 
@@ -162,23 +166,37 @@ class test_graph( unittest.TestCase ):
         self.assertEqual( -outputtuple.a, outputtuple.b + outputtuple.c + 1)
 
     def test_saving_and_loading( self ):
-        import tempfile
-        from . import test_datagraph_factory as mymodule
         used_modules = [ mymodule ]
         tmpgraph = datagraph()
         tmpgraph.add_node( "myinput", threetuple_origin )
+        tmpgraph["myinput"] = threetuple_origin(1,2,3)
         from .automatic_directory.filehandler import save_graph, load_graph
         with tempfile.TemporaryDirectory() as tmpdirectory:
             save_graph( tmpgraph, tmpdirectory, used_modules )
-            print( tmpdirectory )
             copy_tmpgraph = load_graph( tmpdirectory, used_modules )
-            print( tmpgraph.nodes( data=True) )
-            print( copy_tmpgraph.nodes( data=True) )
+        self.assertEqual( tmpgraph[ "myinput" ].b, copy_tmpgraph[ "myinput" ].b)
 
+    def test_completing_graph( self ):
+        used_factoryleafs = ( \
+                sumup, check_isnegative, \
+                threetuple_spawning_from_origin, \
+                threetuple_decrease_ifpositive )
+        myflowgraph = create_flowgraph_for_datanodes( \
+                                        used_factoryleafs, 
+                                        (conclusion_sumisnegative_so_is_tuple,\
+                                        conclusion_sumispositive_so_is_tuple))
 
+        #used_modules = [ mymodule ]
+        tmpgraph = datagraph()
+        tmpgraph.add_node( "myinput", threetuple_origin )
+        tmpgraph["myinput"] = threetuple_origin(1,2,3)
+        tmpgraph.add_node( "mynegative", threetuple )
+        tmpgraph.add_node( "targetprop_negative", property_valuesign )
+        tmpgraph.add_edge( "myinput", "mynegative", spawns_threetuple )
+        tmpgraph.add_edge( "mynegative", "targetprop_negative", \
+                            property_sumisnegative )
 
-
-
+        complete_datagraph( myflowgraph, tmpgraph )
 
 
 class threetuple_origin( datatype ):
@@ -186,6 +204,20 @@ class threetuple_origin( datatype ):
         self.a = a
         self.b = b
         self.c = c
+
+    def save_as( self, filepath ):
+        with open( filepath, "wb" ) as csvfile:
+            csvfile.write( self.a.to_bytes( 1, "big" ) )
+            csvfile.write( self.b.to_bytes( 1, "big" ) )
+            csvfile.write( self.c.to_bytes( 1, "big" ) )
+
+    def load_from( nonething, filepath ):
+        with open( filepath, "rb" ) as csvfile:
+            a = int.from_bytes( csvfile.read(1), "big" )
+            b = int.from_bytes( csvfile.read(1), "big" )
+            c = int.from_bytes( csvfile.read(1), "big" )
+        return threetuple_origin( a, b, c )
+
 
 class threetuple( datatype ):
     def __init__( self, a=1,b=2,c=3):
