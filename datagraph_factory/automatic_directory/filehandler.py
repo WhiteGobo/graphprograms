@@ -24,7 +24,7 @@ def save_graph( mydatagraph, directory_path, used_modules, forcenew=False ):
             try:
                 tmpfilepath = os.path.join( directory_path, node )
                 data[ CONTAINED_DATA ].save_as( tmpfilepath )
-            except KeyError:
+            except AttributeError: #catch datatype not having save_as
                 pass
 
 def load_graph( directory_path, used_modules ):
@@ -56,6 +56,7 @@ def _create_datagraph_blueprint( mydatagraph, datatype_to_name, \
         savegraph.add_edge( edge_in, edge_out, **{ EDGETYPE: edgetype_id })
     return savegraph
 
+
 def _load_datagraph_from_blueprint( savegraph, name_to_datatype, \
                                                 name_to_edgetype ):
     if type( savegraph ) != netx.MultiDiGraph:
@@ -69,8 +70,6 @@ def _load_datagraph_from_blueprint( savegraph, name_to_datatype, \
         tmpedgetype = name_to_edgetype[ data[ EDGETYPE ] ]
         mydatagraph.add_edge( edge_in, edge_out, **{EDGETYPE: tmpedgetype})
     return mydatagraph
-
-
 
 
 def _create_dict_name_to_type( used_modules ):
@@ -87,6 +86,7 @@ def _create_dict_name_to_type( used_modules ):
         del( tmpdatatypes, tmpedgetypes )
     return mydatatypes, myedgetypes
 
+
 def _create_dict_type_to_name( used_modules ):
     mydatatypes, myedgetypes = _create_dict_name_to_type( used_modules )
     datatype_to_stringidentifier = { value:key \
@@ -94,11 +94,6 @@ def _create_dict_type_to_name( used_modules ):
     edgetype_to_stringidentifier = { value:key \
                                     for key, value in myedgetypes.items() }
     return datatype_to_stringidentifier, edgetype_to_stringidentifier
-
-
-
-
-#def _check_datagraph( mydatagraph ):
 
 
 def _check_and_create_save_graph( mydatagraph, directory_path, createnew ):
