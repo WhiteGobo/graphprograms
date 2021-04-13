@@ -1,52 +1,21 @@
-import copy
-import networkx as netx
-from ..processes import factory_leaf
-from ..find_process_path import datastate_from_graph
-from ..find_process_path import datastate
-from .. import find_process_path
+from ..find_process_path import datastate_from_graph, \
+                            datastate, \
+                            datastate_not_connected_error
 from .. import linear_factorybranch
-from ..linear_factorybranch import create_linear_function
-import math
-import itertools
-from ..find_process_path import datastate_not_connected_error
-from ..linear_factorybranch import FailstateReached, NoPathToOutput, \
-                                DataRescueException
-
-from ..constants import DATAGRAPH_CONTAINED_DATA as CONTAINED_DATA
+from ..linear_factorybranch import create_linear_function, \
+                            FailstateReached, NoPathToOutput, \
+                            DataRescueException
 
 
 def complete_datagraph( myflowgraph, wholegraph ):
     asd = myflowgraph.find_possible_compatible_maximal_partgraph( wholegraph )
-    generatable_nodes_with = dict()
-    for max_datastate, datastate_to_graphnodes in asd:
-        minimal_states = myflowgraph.find_minimal_datastates_to( \
-                                                            max_datastate )
-        for minstate in minimal_states:
-            try:
-                minigraph = wholegraph.subgraph( [ \
-                                        datastate_to_graphnodes[n] \
-                                        for n in minstate.nodes ] )
-                generatable_dsnodes = max_datastate.nodes.difference( \
-                                        minstate.nodes )
-                targetgraph = wholegraph.subgraph( \
-                                        datastate_to_graphnodes.values() )
-                minigraph_nodes = frozenset( [ \
-                                        datastate_to_graphnodes[n] \
-                                        for n in minstate.nodes ] )
-                targetgraph_nodes = frozenset( \
-                                        datastate_to_graphnodes.values() )
-                for dsnode in generatable_dsnodes:
-                    try:
-                        graphnode = datastate_to_graphnodes[ dsnode ]
-                        tmpset = generatable_nodes_with.setdefault( \
-                                        graphnode, set() )
-                        #tmplist.append( (minigraph, targetgraph) )
-                        tmpset.add((minigraph_nodes, targetgraph_nodes))
-                    except KeyError:
-                        pass
-            except KeyError: #catch if minigraph cant be created from 
-                            #given nodes of wholegraph
-                pass
+    generatable_nodes_with = create_inout_nodes_for_creation( asd, myflowgraph,\
+                                                                wholegraph )
+    wholegraph = complete_graph( generatable_nodes_with, myflowgraph,wholegraph)
+    return wholegraph
+
+
+def complete_graph( generatable_nodes_with, myflowgraph, wholegraph ):
     while not wholegraph.completed:
         borderlist = wholegraph.get_completed_datanode_border( \
                                                 not_completed_nodes=True )
@@ -73,11 +42,46 @@ def complete_datagraph( myflowgraph, wholegraph ):
                                 wholegraph[ key ] = value
                         lever = True
                         break
-                    except (find_process_path.datastate_not_connected_error,
+                    except ( datastate_not_connected_error,
                             linear_factorybranch.NoPathToOutput ):
                         pass
             if lever:
                 break
     return wholegraph
+
+
+def create_inout_nodes_for_creation( max_datastate_with_translation_to_graph, \
+                                        myflowgraph, wholegraph ):
+    generatable_nodes_with = dict()
+    for max_datastate, datastate_to_graphnodes \
+                                    in max_datastate_with_translation_to_graph:
+        minimal_states = myflowgraph.find_minimal_datastates_to( max_datastate )
+        for minstate in minimal_states:
+            try:
+                minigraph = wholegraph.subgraph( [ \
+                                        datastate_to_graphnodes[n] \
+                                        for n in minstate.nodes ] )
+                generatable_dsnodes = max_datastate.nodes.difference( \
+                                        minstate.nodes )
+                targetgraph = wholegraph.subgraph( \
+                                        datastate_to_graphnodes.values() )
+                minigraph_nodes = frozenset( [ \
+                                        datastate_to_graphnodes[n] \
+                                        for n in minstate.nodes ] )
+                targetgraph_nodes = frozenset( \
+                                        datastate_to_graphnodes.values() )
+                for dsnode in generatable_dsnodes:
+                    try:
+                        graphnode = datastate_to_graphnodes[ dsnode ]
+                        tmpset = generatable_nodes_with.setdefault( \
+                                        graphnode, set() )
+                        #tmplist.append( (minigraph, targetgraph) )
+                        tmpset.add((minigraph_nodes, targetgraph_nodes))
+                    except KeyError:
+                        pass
+            except KeyError: #catch if minigraph cant be created from 
+                            #given nodes of wholegraph
+                pass
+    return generatable_nodes_with
 
 
