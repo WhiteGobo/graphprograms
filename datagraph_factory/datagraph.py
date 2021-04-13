@@ -17,8 +17,8 @@ class datagraph( netx.MultiDiGraph ):
         try:
             self.nodes[key][ CONTAINED_DATA ] = item
         except KeyError as err:
-            raise KeyError( "Item assignment only valid for existing nodes" )\
-                    from err
+            raise KeyError( "Item assignment only valid "
+                        "for existing nodes" ) from err
 
     def __getitem__( self, key ):
         try:
@@ -27,8 +27,8 @@ class datagraph( netx.MultiDiGraph ):
             if key in self.nodes():
                 raise KeyError( f"no data found for node {key}" ) from err
             else:
-                raise KeyError( "Item fetching only valid for existing nodes" )\
-                    from err
+                raise KeyError( "Item fetching only valid for " \
+                                "existing nodes" ) from err
 
     def add_node( self, node_id, datatype=None ):
         if datatype:
@@ -61,7 +61,6 @@ class datagraph( netx.MultiDiGraph ):
             super().add_edge( firstnode, secondnode )
 
 
-
     def copy( self ):
         if not self.test_valid():
             raise Exception( "cant copy not valid datagraphs. check if "\
@@ -73,6 +72,7 @@ class datagraph( netx.MultiDiGraph ):
         for node1, node2, key, data in self.edges( data=True, keys=True ):
             newgraph.add_edge( node1, node2, data[ EDGETYPE ] )
         return newgraph
+
 
     def add_edges_from( self, args ):
         for m in args:
@@ -114,6 +114,51 @@ class datagraph( netx.MultiDiGraph ):
         graph in regard of datatypes and edgetypes
         """
         return self.weisfeil_hash() == otherdatagraph.weisfeil_hash()
+
+    def nodelist_of_datatype( self, datatype ):
+        return [ n for n in self.nodes() if self.nodes[n][DATATYPE] == datatype]
+    
+    def _check_if_all_nodes_completed( self ):
+        for n in self.nodes:
+            if CONTAINED_DATA not in self.nodes[ n ]:
+                return False
+        return True
+    completed = property( fget=_check_if_all_nodes_completed )
+
+    def get_completed_datanodes( self ):
+        for n in self.nodes:
+            data = self.nodes[ n ]
+            if CONTAINED_DATA in data.keys():
+                yield n
+
+    def get_completed_datanode_border( self, not_completed_nodes=False ):
+        """
+        return completed datanodes which have a not-completed datanode as 
+        neighbour, or vice-versa if not_completed_nodes
+        """
+        completed_list, not_completed_list = list(), list()
+        for n in self.nodes:
+            data = self.nodes[ n ]
+            if CONTAINED_DATA in data.keys():
+                completed_list.append( n )
+            else:
+                not_completed_list.append( n )
+        neighbours = list()
+        if not_completed_nodes:
+            for n in completed_list:
+                neighbours.extend( self.predecessors( n ) )
+                neighbours.extend( self.successors( n ) )
+            neighbours = set( neighbours ).difference( completed_list )
+        else:
+            for n in not_completed_list:
+                neighbours.extend( self.predecessors( n ) )
+                neighbours.extend( self.successors( n ) )
+            neighbours = set( neighbours ).difference( not_completed_list )
+        return neighbours
+
+
+    def get_data_as_dictionary( self ):
+        return netx.get_node_attributes( self, CONTAINED_DATA )
 
     def weisfeil_hash( self ):
         replicate_graph = netx.MultiDiGraph()

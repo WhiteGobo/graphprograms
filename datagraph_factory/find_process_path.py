@@ -284,10 +284,22 @@ class datastate():
                                 f"nodes are: {nodesandtypes}. "\
                                 +f"Edges are {edges}" )
 
-    def _get_node_to_datatype( self ):
-        return self._flowgraph.node_to_datatype
 
+    def _get_node_to_datatype( self ):
+        return { key:value \
+                for key, value in self._flowgraph.node_to_datatype.items() \
+                if key in self.nodes }
     node_to_datatype = property( fget = _get_node_to_datatype )
+
+    def _get_datatype_to_nodelist( self ):
+        tmpdictionary = {}
+        for nodeid, datatype in self.node_to_datatype.items():
+            tmplist = tmpdictionary.setdefault( datatype, list() )
+            tmplist.append( nodeid )
+            del( tmplist )
+        return tmpdictionary
+    datatype_to_nodelist = property( fget = _get_datatype_to_nodelist )
+
 
     def is_connected( self ):
         testgraph = netx.Graph()
@@ -297,8 +309,10 @@ class datastate():
             testgraph.add_edge( edge[0], edge[1] )
         return netx.is_connected( testgraph )
 
+
     def __repr__( self ):
         return f"data({tuple(self.nodes)}, {tuple(self.edges)})"
+
 
     def reachable_with_process( self, myprocess ):
         if myprocess.valid_for_nodelist( ( self.nodes, self.edges ) ):
@@ -319,7 +333,8 @@ class datastate():
         tmp = self.node_to_datatype
         tmp = { node: repr(value) for node, value in tmp.items() }
         netx.set_node_attributes( replicate_graph, tmp, "nattr" )
-        return int( weisfeiler_lehman_graph_hash( replicate_graph, node_attr="nattr", edge_attr="eattr" ), 16 )
+        return int( weisfeiler_lehman_graph_hash( replicate_graph, \
+                                    node_attr="nattr", edge_attr="eattr" ), 16 )
 
     def issubset_to( self, other_datastate ):
         chk1 = all([ node in other_datastate.nodes for node in self.nodes ])
@@ -349,7 +364,7 @@ class flowgraph( netx.MultiDiGraph ):
 
     def _reverse_node_to_datatype( self ):
         tmpdictionary = {}
-        for nodeid, datatype in self.node_to_datatype:
+        for nodeid, datatype in self.node_to_datatype.items():
             tmplist = tmpdictionary.setdefault( datatype, list() )
             tmplist.append( nodeid )
             del( tmplist )
@@ -503,44 +518,145 @@ class flowgraph( netx.MultiDiGraph ):
         nodenumber = lambda mydatastate: len( mydatastate.nodes )
         alldatastates = sorted( self.nodes(), key = nodenumber )
         tmpset_datastates = set( alldatastates )
-        for i, compdatastate in enumerate( alldatastates ):
-            for seconddatastate in alldatastates[ i+1: ]:
-                if compdatastate.issubset_to( seconddatastate ):
-                    tmpset_datastates.remove( compdatastate )
-                    break
-        return tmpset_datastates
+        substates = _find_subdatastates( alldatastates )
+        return tmpset_datastates.difference( substates )
+
+    def find_minimal_datastates_to( self, mydatastate ):
+        tmpgraph = netx.DiGraph()
+        tmpgraph.add_edges_from( self.edges() )
+        comps = netx.strongly_connected_components( tmpgraph )
+        component_graph = netx.DiGraph()
+        asd = {}
+        for m in comps:
+            frozen_m = frozenset( m )
+            component_graph.add_node( frozen_m )
+            asd.update({c:frozen_m for c in m})
+        for e in tmpgraph.edges():
+            component_graph.add_edge( asd[e[0]], asd[e[1]] )
+
+        visited_comps = set([asd[mydatastate]])
+        prevcomps = list( component_graph.predecessors( asd[mydatastate] ))
+        rootcomps = list()
+        while prevcomps:
+            tmpcomp = prevcomps.pop(0)
+            new_comps = list( component_graph.predecessors( tmpcomp ) )
+            if new_comps:
+                new_comps = [ a for a in new_comps if a not in visited_comps ]
+                visited_comps = visited_comps.union( new_comps )
+                prevcomps.extend( new_comps )
+            else:
+                rootcomps.append( tmpcomp )
+        minimal_states = list( itertools.chain( *(\
+                            _minimal_complete_list_of_states_from( tmpcomp ) \
+                            for tmpcomp in rootcomps) ) )
+
+        return minimal_states
 
     def find_possible_compatible_maximal_partgraph( self, wholegraph ):
         maximal_datastates = self.maximal_datastates()
         end_datastates_with_graph = list()
-        for test_datastate in maximal_datastates:
-            single_datatype_translation = test_datastate.possible_translations
+        for test_datastate in set(maximal_datastates):
+            single_datatype_translation = test_datastate.datatype_to_nodelist
+            dsnode_to_datatype = test_datastate.node_to_datatype
             i = 0
             remaining_edges = list( test_datastate.edges )
 
             open_datastate_with_graph = list()
             for node in test_datastate.nodes:
-                open_datastate_with_graph.append({ \
-                                            node: single_datatype[ node ] }, \
-                                            set( test_datastate.edges ) )
+                datatype = dsnode_to_datatype[ node ]
+                poss_nodelist_graph = wholegraph.nodelist_of_datatype( datatype)
+                for node_graph in poss_nodelist_graph:
+                    open_datastate_with_graph.append(( \
+                                    { node: node_graph }, \
+                                    set( test_datastate.edges ) ))
             while len( open_datastate_with_graph ) != 0:
                 new_open_datastate_with_graph = list()
                 for pair in open_datastate_with_graph:
                     next_openstates_with_graph \
-                            = _add_one_edge_from_datastate_to_datagraph( *pair )
+                            = list( _add_one_edge_from_datastate_to_datagraph( \
+                                    *pair, dsnode_to_datatype, \
+                                    wholegraph ) )
+                    
                     if len( next_openstates_with_graph ) == 0:
-                        end_datastates_with_graph.append( pair )
+                        end_datastates_with_graph.append( \
+                                    (test_datastate, pair[0]) )
                     else:
                         new_open_datastate_with_graph.extend( \
                                                 next_openstates_with_graph )
                 open_datastate_with_graph = new_open_datastate_with_graph
+
+        end_datastates_with_graph = _remove_pairlist_doubles( \
+                                                end_datastates_with_graph )
+        #for dstate, translation in end_datastates_with_graph:
+            #trans_datastate = 
+            #raise Exception( dstate )
         return end_datastates_with_graph
 
+def _minimal_complete_list_of_states_from( tmpcomp ):
+    return [ iter( tmpcomp ).__next__() ]
 
-def _add_one_edge_from_datastate_to_datagraph( current_datastate, \
-                                                current_datagraph, wholegraph ):
-    for e in current_datastate.edges:
-        pass
+def _remove_pairlist_doubles( pairlist ):
+    toremove = set()
+    for i, pair in enumerate( pairlist ):
+        a, b = pair
+        for aa, bb in pairlist[:i]:
+            if a == aa and b == bb:
+                toremove.add( i )
+    for i in sorted( toremove, reverse=True ):
+        pairlist.pop( i )
+    return pairlist
+
+
+def _find_subdatastates( alldatastates ):
+    for i, compdatastate in enumerate( alldatastates ):
+        for seconddatastate in alldatastates[ i+1: ]:
+            if compdatastate.issubset_to( seconddatastate ):
+                yield compdatastate
+
+def _add_one_edge_from_datastate_to_datagraph( current_translation, \
+                                                not_used_edges, \
+                                                dsnode_to_datatype, \
+                                                wholegraph ):
+    OUT, IN = 0, 1
+    for a, b, edgetype in not_used_edges:
+        if a in current_translation and b not in current_translation:
+            ds_nextnode, ds_lastnode = b, a
+            direction = OUT
+        elif a not in current_translation and b in current_translation:
+            ds_nextnode, ds_lastnode = a, b
+            direction = IN
+        else:
+            ds_nextnode = None
+        if ds_nextnode:
+            lastnode_datatype = dsnode_to_datatype[ ds_lastnode ]
+            nextnode_datatype = dsnode_to_datatype[ ds_nextnode ]
+            possnodelist = wholegraph.nodelist_of_datatype( lastnode_datatype )
+            for lastnode_graph in possnodelist:
+                if direction == IN:
+                    compatible_edges_graph = wholegraph.in_edges( \
+                                                    lastnode_graph, data=True )
+                    poss_nextnodes = [ e[0] \
+                        for e in compatible_edges_graph \
+                        if e[-1][EDGETYPE]==edgetype ]
+                else:
+                    compatible_edges_graph = wholegraph.out_edges( \
+                                                    lastnode_graph, data=True )
+                    poss_nextnodes = [ e[1] \
+                        for e in compatible_edges_graph \
+                        if e[-1][EDGETYPE]==edgetype ]
+                poss_nextnodes = [ n for n in poss_nextnodes \
+                                    if n not in current_translation.values() ]
+                poss_nextnodes = [ n for n in poss_nextnodes \
+                                    if wholegraph.nodes[ n ][DATATYPE] \
+                                    == nextnode_datatype ]
+                #if edgetype == compatible_edges_graph[-1][ EDGETYPE ]:
+                #    raise Exception(1)
+                for nextnode_graph in poss_nextnodes:
+                    new_translation = { ds_nextnode: nextnode_graph }
+                    new_translation.update( current_translation )
+                    new_not_used_edges = not_used_edges\
+                                        .difference( (a, b, edgetype) )
+                    yield (new_translation, not_used_edges.difference() )
 
 
 def translate_factoryleaf_to_datastateeffect( givenflowgraph, \

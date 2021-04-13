@@ -5,8 +5,8 @@ from .find_process_path import create_flowgraph_for_datanodes
 from . import find_process_path
 from . import linear_factorybranch
 
-from .constants import DATAGRAPH_DATATYPE as DATATYPE
-from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
+from .constants import DATAGRAPH_DATATYPE as DATATYPE, \
+                        DATAGRAPH_EDGETYPE as EDGETYPE
 from .linear_factorybranch import create_linear_function
 from .linear_factorybranch import FailstateReached
 from .linear_factorybranch import DataRescueException
@@ -186,17 +186,27 @@ class test_graph( unittest.TestCase ):
                                         (conclusion_sumisnegative_so_is_tuple,\
                                         conclusion_sumispositive_so_is_tuple))
 
-        #used_modules = [ mymodule ]
         tmpgraph = datagraph()
         tmpgraph.add_node( "myinput", threetuple_origin )
         tmpgraph["myinput"] = threetuple_origin(1,2,3)
+        tmpgraph.add_node( "mypositive", threetuple )
+        tmpgraph.add_node( "targetprop_positive", property_valuesign )
+        tmpgraph.add_edge( "myinput", "mypositive", spawns_threetuple )
+        tmpgraph.add_edge( "mypositive", "targetprop_positive", \
+                            property_sumispositive )
         tmpgraph.add_node( "mynegative", threetuple )
         tmpgraph.add_node( "targetprop_negative", property_valuesign )
         tmpgraph.add_edge( "myinput", "mynegative", spawns_threetuple )
         tmpgraph.add_edge( "mynegative", "targetprop_negative", \
                             property_sumisnegative )
+        #used_modules = [ mymodule ]
 
-        complete_datagraph( myflowgraph, tmpgraph )
+        myflowgraph = complete_datagraph( myflowgraph, tmpgraph )
+        qwe =  myflowgraph["mynegative"]
+        qwe2 =  myflowgraph["mypositive"]
+        self.assertTrue( qwe.a+qwe.b+qwe.c < 0)
+        self.assertTrue( qwe2.a+qwe2.b+qwe2.c < 0)
+        #raise Exception( qwe.a, qwe.b, qwe.c, qwe2.a, qwe2.b, qwe2.c )
 
 
 class threetuple_origin( datatype ):
