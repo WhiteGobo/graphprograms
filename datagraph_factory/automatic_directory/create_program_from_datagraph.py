@@ -66,7 +66,11 @@ def complete_datagraph( myflowgraph, wholegraph ):
                                         if key in in_nodes }
                         asd = myfoo( **mydata )
                         for key, value in asd.items():
-                            wholegraph[ key ] = value
+                            if key not in in_nodes:
+                                if key in completed_nodes:
+                                    raise Exception( "recreated node in graph"\
+                                            "autocomplete" )
+                                wholegraph[ key ] = value
                         lever = True
                         break
                     except (find_process_path.datastate_not_connected_error,
