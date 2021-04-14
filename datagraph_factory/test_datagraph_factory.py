@@ -205,7 +205,7 @@ class test_graph( unittest.TestCase ):
         qwe =  myflowgraph["mynegative"]
         qwe2 =  myflowgraph["mypositive"]
         self.assertTrue( qwe.a+qwe.b+qwe.c < 0)
-        self.assertTrue( qwe2.a+qwe2.b+qwe2.c < 0)
+        self.assertTrue( qwe2.a+qwe2.b+qwe2.c > 0)
         #raise Exception( qwe.a, qwe.b, qwe.c, qwe2.a, qwe2.b, qwe2.c )
 
 
