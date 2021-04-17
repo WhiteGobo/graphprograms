@@ -221,12 +221,13 @@ class threetuple_origin( datatype ):
             csvfile.write( self.b.to_bytes( 1, "big" ) )
             csvfile.write( self.c.to_bytes( 1, "big" ) )
 
-    def load_from( nonething, filepath ):
+    @classmethod
+    def load_from( cls, filepath ):
         with open( filepath, "rb" ) as csvfile:
             a = int.from_bytes( csvfile.read(1), "big" )
             b = int.from_bytes( csvfile.read(1), "big" )
             c = int.from_bytes( csvfile.read(1), "big" )
-        return threetuple_origin( a, b, c )
+        return cls( a, b, c )
 
 
 class threetuple( datatype ):
