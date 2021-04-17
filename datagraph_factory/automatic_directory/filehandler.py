@@ -44,7 +44,8 @@ def load_graph( directory_path, used_modules ):
                 pass
             except TypeError as err:
                 raise TypeError( "make sure load_from is decorated "\
-                                "as classmethod" ) from err
+                                "as classmethod and uses only 'cls'"\
+                                "and 'filepath' as arguments" ) from err
     return mydatagraph
 
 
