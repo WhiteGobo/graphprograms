@@ -39,7 +39,7 @@ def load_graph( directory_path, used_modules ):
             tmpfilepath = os.path.join( directory_path, node )
             try:
                 data[ CONTAINED_DATA ] = data[ DATATYPE ]\
-                                        .load_from( None, tmpfilepath )
+                                        .load_from( tmpfilepath )
             except AttributeError: #g isnt there
                 pass
     return mydatagraph
