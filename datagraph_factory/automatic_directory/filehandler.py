@@ -42,6 +42,9 @@ def load_graph( directory_path, used_modules ):
                                         .load_from( tmpfilepath )
             except AttributeError: #g isnt there
                 pass
+            except TypeError as err:
+                raise TypeError( "make sure load_from is decorated "\
+                                "as classmethod" ) from err
     return mydatagraph
 
 
