@@ -26,6 +26,8 @@ def save_graph( mydatagraph, directory_path, used_modules, forcenew=False ):
                 data[ CONTAINED_DATA ].save_as( tmpfilepath )
             except AttributeError: #catch datatype not having save_as
                 pass
+            except KeyError: #catch if no data exists
+                pass
 
 def load_graph( directory_path, used_modules ):
     rootname = ".".join( (SAVENAME, "xml") )
