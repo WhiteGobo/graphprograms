@@ -36,8 +36,9 @@ class datagraph( netx.MultiDiGraph ):
         else:
             super().add_node( node_id )
 
-    def add_edge( self, firstnode, secondnode, edgetype = None ):
+    def add_edge( self, firstnode, secondnode, myedgetype = None ):
         if edgetype:
+            if not isinstance( myedgetype, edgetype )
             errargs = []
             if firstnode not in self.nodes:
                 errargs.append( f"node '{firstnode}' must be added before edge")
@@ -46,7 +47,7 @@ class datagraph( netx.MultiDiGraph ):
             if errargs:
                 raise Exception( *errargs )
 
-            source_target_pairs = edgetype.get_source_target_pair_function()
+            source_target_pairs = myedgetype.get_source_target_pair_function()
             given_type_pair = tuple((self.nodes[firstnode][DATATYPE], \
                                     self.nodes[secondnode][DATATYPE]))
             if given_type_pair not in source_target_pairs:
@@ -56,7 +57,7 @@ class datagraph( netx.MultiDiGraph ):
                                 %(self.nodes[firstnode][DATATYPE], \
                                 self.nodes[secondnode][DATATYPE], \
                                 source_target_pairs))
-            super().add_edge( firstnode, secondnode, **{EDGETYPE: edgetype})
+            super().add_edge( firstnode, secondnode, **{EDGETYPE: myedgetype})
         else:
             super().add_edge( firstnode, secondnode )
 
