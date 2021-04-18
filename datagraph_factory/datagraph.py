@@ -38,7 +38,8 @@ class datagraph( netx.MultiDiGraph ):
 
     def add_edge( self, firstnode, secondnode, myedgetype = None ):
         if edgetype:
-            if not isinstance( myedgetype, edgetype )
+            if not isinstance( myedgetype, edgetype ):
+                raise TypeError("add_edge only support class edgetype for myedgetype")
             errargs = []
             if firstnode not in self.nodes:
                 errargs.append( f"node '{firstnode}' must be added before edge")

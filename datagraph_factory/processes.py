@@ -173,7 +173,7 @@ def get_datanode_maximal_occurence( processlist ):
         try:
             process.prestatus, process.poststatus
         except AttributeError as err:
-            raise TypeError( "given processlist didnt contain "\
+            raise TypeError( process, "given processlist didnt contain "\
                                 "factory_leaf-like elements" ) from err
         inputdict = netx.get_node_attributes( process.prestatus, DATATYPE )
         outputdict = netx.get_node_attributes( process.poststatus, DATATYPE)
