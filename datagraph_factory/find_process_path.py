@@ -515,11 +515,14 @@ class flowgraph( netx.MultiDiGraph ):
         return list()
 
     def maximal_datastates( self ):
-        nodenumber = lambda mydatastate: len( mydatastate.nodes )
-        alldatastates = sorted( self.nodes(), key = nodenumber )
-        tmpset_datastates = set( alldatastates )
-        substates = _find_subdatastates( alldatastates )
-        return tmpset_datastates.difference( substates )
+        allthingis = []
+        for weaknodes in netx.weakly_connected_components( self ):
+            nodenumber = lambda mydatastate: len( mydatastate.nodes )
+            alldatastates = sorted( weaknodes, key = nodenumber )
+            tmpset_datastates = set( alldatastates )
+            substates = _find_subdatastates( alldatastates )
+            allthingis.extend( tmpset_datastates.difference( substates ) )
+        return allthingis
 
     def find_minimal_datastates_to( self, mydatastate ):
         tmpgraph = netx.DiGraph()

@@ -15,6 +15,8 @@ def complete_datagraph( myflowgraph, wholegraph ):
         minimal_states = myflowgraph.find_minimal_datastates_to( max_datastate )
         for minstate in minimal_states:
             newasd.append( (minstate, max_datastate, datastate_to_graphnodes) )
+    if len(newasd) == 0:
+        raise Exception( "couldnt find any creatablegraphs" )
 
     newnewasd = set()
     for min_datastate, max_datastate, datastate_to_graphnodes in newasd:
@@ -23,6 +25,8 @@ def complete_datagraph( myflowgraph, wholegraph ):
                                         datastate_to_graphnodes, wholegraph )
         for i in tmp:
             newnewasd.add( i )
+    if newnewasd == set():
+        raise Exception( "couldnt separate creatablegraphs to graphs. This shouldnt happen if the algorithm is correct. Please contact the programmer" )
 
     generatable_nodes_with = create_generatordict_for_graphnodes( newnewasd, \
                                                     myflowgraph, wholegraph )
