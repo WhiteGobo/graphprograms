@@ -25,9 +25,15 @@ def complete_datagraph( myflowgraph, wholegraph ):
             newnewasd.add( i )
 
     generatable_nodes_with = create_generatordict_for_graphnodes( newnewasd, \
-                                                        myflowgraph, wholegraph )
-    #generatable_nodes_with = create_inout_nodes_for_creation( asd, myflowgraph,\
-    #                                                            wholegraph )
+                                                    myflowgraph, wholegraph )
+
+    notcompleted = set(wholegraph.nodes()).difference( wholegraph.get_completed_datanodes() )
+    if not set( generatable_nodes_with.keys() ).issuperset( notcompleted ):
+        raise Exception( "cant generate following missing nodes "\
+                            "from wholegraph: %s" %( 
+                            notcompleted.difference(
+                            generatable_nodes_with.keys()))
+                            )
     wholegraph = complete_graph( generatable_nodes_with, myflowgraph,wholegraph)
     return wholegraph
 
