@@ -93,27 +93,33 @@ class test_graph( unittest.TestCase ):
 
     def test_datagraph_factory_with_conclusionlist( self ):
         tmpgraph = datagraph()
+        tmpgraph.add_node( "myorigin", threetuple_origin )
         tmpgraph.add_node( "myinput", threetuple )
+        tmpgraph.add_edge( "myorigin", "myinput", spawns_threetuple )
         inputgraph = tmpgraph.copy()
         tmpgraph.add_node( "targetprop_negative", property_valuesign )
         outputgraph = tmpgraph.copy()
         tmpgraph.add_edge( "myinput", "targetprop_negative", \
                             property_sumisnegative )
+        tmpgraph.add_edge( "myorigin", "targetprop_negative", property_strange)
         outputgraph_with_edge = tmpgraph.copy()
         del( tmpgraph )
 
         flowgraph_with_conclusion = create_flowgraph_for_datanodes( \
-                                        (sumup, check_isnegative), \
+                                        (sumup, check_isnegative, \
+                                        threetuple_spawning_from_origin), \
                                         (conclusion_sumisnegative_so_is_tuple,\
-                                        conclusion_sumispositive_so_is_tuple))
-        #softtest there should be 8 possible constellations
-        self.assertEqual( len( flowgraph_with_conclusion.nodes()), 8 )
+                                        conclusion_sumispositive_so_is_tuple, \
+                                        conclusion_strange))
+        #softtest there should be 17 possible constellations
+        self.assertEqual( len( flowgraph_with_conclusion.nodes()), 17 )
 
         myfoo = create_linear_function( \
                             flowgraph_with_conclusion, \
                             inputgraph, outputgraph_with_edge, verbosity =1 )
         a, b, c = 2, 4, -7
-        asd_with_conclusionleaf = myfoo( myinput = threetuple(a,b,c) )
+        asd_with_conclusionleaf = myfoo( myinput = threetuple(a,b,c), \
+                                    myorigin= threetuple_origin(a,b,c) )
 
         # This tests if output has all the nodes and so the translation found
         self.assertEqual( set(outputgraph_with_edge.nodes()), \
@@ -245,7 +251,7 @@ class property_valuesign( datatype ):
 
 
 _get_possiblepairs_spawns_threetuple = lambda: tuple((\
-                                            (threetuple_origin,threetuple),\
+                                            (threetuple_origin, threetuple),\
                                             ))
 spawns_threetuple = edgetype( _get_possiblepairs_spawns_threetuple, \
                                 "spawned_threetuple", "" )
@@ -280,6 +286,11 @@ _get_possiblepairs_property_sumispositive = lambda: tuple((\
 property_sumispositive = edgetype( _get_possiblepairs_property_sumispositive, \
                                         "property_ispositive", "" )
 
+_get_possiblepairs_strangeproperty = lambda: tuple([ \
+                                    (threetuple_origin, property_valuesign),])
+property_strange = edgetype( _get_possiblepairs_strangeproperty, "strange", "" )
+
+
 _get_possiblepairs_property_tata = lambda: tuple((\
                                             (threetuple, property_valuesign), \
                                             ))
@@ -297,6 +308,21 @@ def _generate_datagraph():
     poststatus = tmp.copy()
     return prestatus, poststatus
 conclusion_sumisnegative_so_is_tuple = conclusion_leaf( _generate_datagraph )
+del( _generate_datagraph )
+
+def _generate_datagraph():
+    tmpgraph = datagraph()
+    tmpgraph.add_node( "myorigin", threetuple_origin )
+    tmpgraph.add_node( "myinput", threetuple )
+    tmpgraph.add_edge( "myorigin", "myinput", spawns_threetuple )
+    tmpgraph.add_node( "targetprop_negative", property_valuesign )
+    tmpgraph.add_edge( "myinput", "targetprop_negative", \
+                        property_sumisnegative )
+    prestatus = tmpgraph.copy()
+    tmpgraph.add_edge( "myorigin", "targetprop_negative", property_strange)
+    poststatus = tmpgraph.copy()
+    return prestatus, poststatus
+conclusion_strange = conclusion_leaf( _generate_datagraph )
 del( _generate_datagraph )
 
 

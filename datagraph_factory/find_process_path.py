@@ -18,6 +18,7 @@ def create_flowgraph_for_datanodes( factoryleaf_list, conclusionleaf_list=[]):
     :rtype: flowgraph
     :type factoryleaf_list: iterable
     :type *factoryleaf_list: process.factoryleaf
+    :todo: change factoryleaf_list to set()
     """
     factoryleaf_list = list( factoryleaf_list )
     node_to_datatype, datatype_to_node = get_my_nodelists( factoryleaf_list )
@@ -36,8 +37,11 @@ def create_flowgraph_for_datanodes( factoryleaf_list, conclusionleaf_list=[]):
         err.args = (*err.args, "couldnt create flowgraph, cause factoryleafs have broken datagraphs as input/output" )
         raise err
     startdatastates = [ proc.inputdatastate for proc in all_processes ]
+    for conc in conclusionlist:
+        startdatastates = [ conc.operate_on( ds ) for ds in startdatastates ]
     visible_datagraphs.set_startgraphs( startdatastates )
-    visible_datagraphs.extend_visible_datagraphs_fully( all_processes )
+    visible_datagraphs.extend_visible_datagraphs_fully( all_processes, \
+                                                            conclusionlist )
     return visible_datagraphs
 
 class conclusionleaf_effect():
@@ -485,12 +489,13 @@ class flowgraph( netx.MultiDiGraph ):
         
 
     def get_superstates_to( self, tmpdatastate ):
-        issubset = lambda s, superstate: not set( s ).difference( superstate )
+        #issubset = lambda s, superstate: not set( s ).issubset( superstate )
+        #issubset = lambda s, superstate: set( s ).issubset( superstate )
         return [ state for state in self.nodes() \
-                if issubset( tmpdatastate.nodes, state.nodes ) \
-                and issubset( tmpdatastate.edges,state.edges ) ]
+                if state.nodes.issuperset( tmpdatastate.nodes ) \
+                and state.edges.issuperset( tmpdatastate.edges ) ]
 
-    def extend_visible_datagraphs_fully( self, processlist ):
+    def extend_visible_datagraphs_fully( self, processlist, conclusioneffects ):
         while self.newestdatagraphs:
             oldnodes = list( self.nodes() )
             tmpset = set()
@@ -500,7 +505,10 @@ class flowgraph( netx.MultiDiGraph ):
                                         self.newestdatagraphs, processlist ):
                 lll = factleaf_effect.extend_datanode( tmpdatastate )
                 for newdatastate in lll:
+                    for conc in conclusioneffects:
+                        newdatastate = conc.operate_on( newdatastate )
                     myfoo = factleaf_effect.get_edge_function( tmpdatastate )
+                    raise Exception()
                     self.add_edge( tmpdatastate, newdatastate, \
                                     edgetype = factleaf_effect, \
                                     edgefunction = myfoo, \
@@ -727,7 +735,7 @@ def translate_conclusion_leaf( givenflowgraph, datatype_to_node, \
                                         factleaf_node_to_datatype, \
                                         datatype_to_node )
         #catch error if not all datatypes of conclusion is are used
-        except KeyError: 
+        except KeyError:
             possible_translations = list()
         for singletrans in possible_translations:
             bubu = conclusionleaf_effect( givenflowgraph, conclusion, \

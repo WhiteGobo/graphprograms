@@ -46,8 +46,6 @@ class conclusion_leaf():
     poststatus = property( fget=_generate_poststatus )
 
 
-
-
 def pass_function():
     pass
 

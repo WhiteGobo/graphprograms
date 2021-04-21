@@ -103,24 +103,27 @@ def complete_graph( generatable_nodes_with, myflowgraph, wholegraph ):
 def _complete_graph_step(generatable_nodes_with, myflowgraph, \
                                 wholegraph, completed_nodes ):
     borderlist = wholegraph.get_completed_datanode_border( not_completed_nodes=True)
+    borderlist = list( borderlist )
     for node in borderlist:
         for in_nodes, out_nodes in generatable_nodes_with[ node ]:
             completed_nodes = set( wholegraph.get_completed_datanodes() )
-            if set( out_nodes ).intersection( completed_nodes )==set( in_nodes):
+            real_innodes = set( out_nodes ).intersection( completed_nodes )
+            if real_innodes.issuperset( in_nodes ):
                 try:
-                    in_graph = wholegraph.subgraph( in_nodes )
+                    in_graph = wholegraph.subgraph( real_innodes )
                     out_graph = wholegraph.subgraph( out_nodes )
                     myfoo = create_linear_function( \
                                     myflowgraph, in_graph, out_graph )
                     mydata = wholegraph.get_data_as_dictionary()
                     mydata = { key:value \
                                     for key, value in mydata.items() \
-                                    if key in in_nodes }
+                                    if key in real_innodes }
                     asd = myfoo( **mydata )
                     return { key: value for key, value in asd.items() \
-                            if key not in in_nodes }
-                except ( datastate_not_connected_error, NoPathToOutput ):
+                            if key not in real_innodes }
+                except ( datastate_not_connected_error, NoPathToOutput ) as er:
                     pass
-    raise Exception()
+    raise Exception( f"tried to generate following nodes {borderlist}", \
+                        set( wholegraph.get_completed_datanodes() ))
 
 

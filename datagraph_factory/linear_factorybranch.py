@@ -119,7 +119,12 @@ class linearflowcontroller():
     def get_output_data( self ):
         currentstate = self.myflowgraph.datastate
         mydatacontainer = self.data
-        translator = self.outputstates_to_graph[ currentstate ]
+        try:
+            translator = self.outputstates_to_graph[ currentstate ]
+        except Exception as err:
+            print( self.outputstates_to_graph )
+            raise
+        raise Exception()
 
         return_translator = \
                 { \
@@ -187,6 +192,7 @@ class linearflowcontroller():
         tmppairs = (foo_allsuperstate_with_trans( state, translation )\
                     for state, translation \
                     in outputstates_with_translation.items() )
+        #raise Exception( list(list(x) for x in tmppairs) )
         possible_datastate_at_output_with_translation \
                     = { key:value \
                         for key, value in itertools.chain( *tmppairs ) }
