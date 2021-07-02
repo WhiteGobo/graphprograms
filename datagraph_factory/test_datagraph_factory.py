@@ -15,9 +15,14 @@ import csv
 import tempfile
 from . import test_datagraph_factory as mymodule
 from .automatic_directory.create_program_from_datagraph import complete_datagraph
+import logging
+#logger = logging.getLogger( __name__ )
+FORMAT = '%(asctime)-15s %(message)s'
+logging.basicConfig( format=FORMAT, level=logging.DEBUG )
 
 class test_graph( unittest.TestCase ):
-
+    def setUp( self ):
+        pass
     def test_factory_leaf( self ):
         a,b,c = 3,4,5
         asd = sumup( mytuple = threetuple(a,b,c) )

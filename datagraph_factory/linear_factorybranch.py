@@ -7,6 +7,8 @@ from .constants import DATAGRAPH_EDGETYPE as EDGETYPE
 import math
 import itertools
 from .find_process_path import datastate_not_connected_error
+import logging
+logger = logging.getLogger( __name__ )
 
 class FailstateReached( Exception ):
     pass
@@ -170,7 +172,9 @@ class linearflowcontroller():
 
     def next_step( self ):
         if self.myflowgraph.datastate in self.process_lib:
-            self.process_lib[ self.myflowgraph.datastate ]()
+            nextprocess = self.process_lib[ self.myflowgraph.datastate ]
+            logger.debug( f"use factoryleaf: {str(nextprocess.factoryleaf)}" )
+            nextprocess()
             return True
         else:
             return False

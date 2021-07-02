@@ -235,6 +235,7 @@ class factoryleaf_effect():
 
             mother_flowgraph.datastate = possible_outputstate[ \
                                             frozenset(foo_output.keys()) ]
+        edge_transition_function.factoryleaf = self.factoryleaf
 
         return edge_transition_function
 
