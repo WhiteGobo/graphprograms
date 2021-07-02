@@ -102,6 +102,7 @@ def complete_graph( generatable_nodes_with, myflowgraph, wholegraph ):
 
 def _complete_graph_step(generatable_nodes_with, myflowgraph, \
                                 wholegraph, completed_nodes ):
+
     borderlist = wholegraph.get_completed_datanode_border( not_completed_nodes=True)
     borderlist = list( borderlist )
     for node in borderlist:

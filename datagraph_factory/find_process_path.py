@@ -1,3 +1,9 @@
+"""
+:todo: rework generator for flowgraph to be a classmethod.
+    Also rework the properties data, datastate and conclusionlist 
+    I would like to have not to save the data and datastate inside the
+    flowgraph
+"""
 import networkx as netx
 #weisfeiler_lehmann_graph_hash = netx.graph_hashing.weisfeiler_lehman_graph_hash
 from extrasfornetworkx import weisfeiler_lehman_graph_hash_multidigraph \
@@ -27,6 +33,7 @@ def create_flowgraph_for_datanodes( factoryleaf_list, conclusionleaf_list=[]):
     conclusionlist = translate_conclusion_leaf( visible_datagraphs, \
                                         datatype_to_node,\
                                         node_to_datatype, conclusionleaf_list )
+    visible_datagraphs.conclusionlist = conclusionlist
 
     try:
         all_processes = list( translate_factoryleaf_to_datastateeffect( 
@@ -359,12 +366,33 @@ class flowgraph( netx.MultiDiGraph ):
                             which datatype corresponds to nodes; 
                             see Object.nodes()
     :param set_startgraphs: Mmmhhh
+    :param data: Mmmmhhh look at linear_factory...
+    :todo: rework data and datastate
     """
     def __init__( self, node_to_datatype ):
         super().__init__()
         self.newestdatagraphs = set()
         self.node_to_datatype = node_to_datatype
+        self._data = dict()
+        self._datastate = None
+        self.conclusionlist = None
 
+    def _get_data( self ):
+        return self._data
+    def _set_data( self, newdata ):
+        self._data = newdata
+    data = property( fget=_get_data, fset=_set_data )
+
+    def _get_datastate( self ):
+        if self._datastate:
+            return self._datastate
+        else:
+            raise AttributeError( "starting datastate not yet set" )
+    def _set_datastate( self, new_datastate ):
+        for conc in self.conclusionlist:
+            new_datastate = conc.operate_on( new_datastate )
+        self._datastate = new_datastate
+    datastate = property( fget=_get_datastate, fset=_set_datastate )
 
     def _reverse_node_to_datatype( self ):
         tmpdictionary = {}
@@ -508,7 +536,7 @@ class flowgraph( netx.MultiDiGraph ):
                     for conc in conclusioneffects:
                         newdatastate = conc.operate_on( newdatastate )
                     myfoo = factleaf_effect.get_edge_function( tmpdatastate )
-                    raise Exception()
+                    #raise Exception()
                     self.add_edge( tmpdatastate, newdatastate, \
                                     edgetype = factleaf_effect, \
                                     edgefunction = myfoo, \
@@ -523,14 +551,16 @@ class flowgraph( netx.MultiDiGraph ):
         return list()
 
     def maximal_datastates( self ):
-        allthingis = []
+        #allthingis = []
         for weaknodes in netx.weakly_connected_components( self ):
             nodenumber = lambda mydatastate: len( mydatastate.nodes )
             alldatastates = sorted( weaknodes, key = nodenumber )
             tmpset_datastates = set( alldatastates )
             substates = _find_subdatastates( alldatastates )
-            allthingis.extend( tmpset_datastates.difference( substates ) )
-        return allthingis
+            for solution in tmpset_datastates.difference( substates ):
+                yield solution
+            #allthingis.extend( tmpset_datastates.difference( substates ) )
+        #return allthingis
 
     def find_minimal_datastates_to( self, mydatastate ):
         tmpgraph = netx.DiGraph()
@@ -566,7 +596,11 @@ class flowgraph( netx.MultiDiGraph ):
     def find_possible_compatible_maximal_partgraph( self, wholegraph ):
         maximal_datastates = self.maximal_datastates()
         end_datastates_with_graph = list()
-        for test_datastate in set(maximal_datastates):
+        m = set(maximal_datastates)
+        #from collections import Counter
+        #qq = Counter()
+        visited = set()
+        for test_datastate in m:
             single_datatype_translation = test_datastate.datatype_to_nodelist
             dsnode_to_datatype = test_datastate.node_to_datatype
             i = 0
@@ -583,24 +617,26 @@ class flowgraph( netx.MultiDiGraph ):
             while len( open_datastate_with_graph ) != 0:
                 new_open_datastate_with_graph = list()
                 for pair in open_datastate_with_graph:
-                    next_openstates_with_graph \
-                            = list( _add_one_edge_from_datastate_to_datagraph( \
-                                    *pair, dsnode_to_datatype, \
-                                    wholegraph ) )
-                    
-                    if len( next_openstates_with_graph ) == 0:
-                        end_datastates_with_graph.append( \
-                                    (test_datastate, pair[0]) )
-                    else:
-                        new_open_datastate_with_graph.extend( \
+                    a = tuple( sorted( pair[0].keys() ) )
+                    b = tuple( pair[0][x] for x in a )
+                    c = tuple( sorted( pair[1] ) )
+                    if (a,b,c) not in visited:
+                        visited.add((a,b,c))
+                        next_openstates_with_graph \
+                                = list( _add_one_edge_from_datastate_to_datagraph( \
+                                        *pair, dsnode_to_datatype, \
+                                        wholegraph ) )
+                        
+                        if len( next_openstates_with_graph ) == 0:
+                            end_datastates_with_graph.append( \
+                                        (test_datastate, pair[0]) )
+                        else:
+                            new_open_datastate_with_graph.extend( \
                                                 next_openstates_with_graph )
                 open_datastate_with_graph = new_open_datastate_with_graph
 
         end_datastates_with_graph = _remove_pairlist_doubles( \
                                                 end_datastates_with_graph )
-        #for dstate, translation in end_datastates_with_graph:
-            #trans_datastate = 
-            #raise Exception( dstate )
         return end_datastates_with_graph
 
 def _minimal_complete_list_of_states_from( tmpcomp ):

@@ -124,7 +124,6 @@ class linearflowcontroller():
         except Exception as err:
             print( self.outputstates_to_graph )
             raise
-        raise Exception()
 
         return_translator = \
                 { \

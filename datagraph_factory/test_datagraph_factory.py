@@ -126,7 +126,7 @@ class test_graph( unittest.TestCase ):
                             asd_with_conclusionleaf.keys() )
         def testfoo():
             a, b, c = 2, 4, 7
-            myfoo( myinput = threetuple(a,b,c) )
+            myfoo( myinput = threetuple(a,b,c), myorigin= threetuple_origin(a,b,c) )
         self.assertRaises( DataRescueException, testfoo )
 
     def test_dataremover( self ):
