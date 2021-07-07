@@ -9,6 +9,8 @@ from ..constants import \
         DATAGRAPH_EDGETYPE as EDGETYPE, \
         DATAGRAPH_CONTAINED_DATA as CONTAINED_DATA, \
         BLUEPRINT_FILENAME as SAVENAME
+import logging
+logger = logging.getLogger( __name__ )
 
 def save_graph( mydatagraph, directory_path, used_modules, forcenew=False ):
     _check_and_create_save_graph( mydatagraph, directory_path, forcenew )
@@ -24,10 +26,11 @@ def save_graph( mydatagraph, directory_path, used_modules, forcenew=False ):
             try:
                 tmpfilepath = os.path.join( directory_path, node )
                 data[ CONTAINED_DATA ].save_as( tmpfilepath )
-            except AttributeError: #catch datatype not having save_as
-                pass
+            except AttributeError as err: #catch datatype not having save_as
+                #raise err
+                logger.debug( f"{node} cant be saved" + str(err.args) )
             except KeyError: #catch if no data exists
-                pass
+                logger.debug( f"{node} has no data" )
 
 def load_graph( directory_path, used_modules ):
     rootname = ".".join( (SAVENAME, "xml") )
